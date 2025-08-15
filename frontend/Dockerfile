@@ -1,8 +1,23 @@
-# build env
-FROM node:21.7.1-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . ./
-RUN npm run build
-CMD cp -r build result_build
+# //////////////////PRODUCTION CONTAINER////////////////////////
+# FROM node:18 as builder
+
+# WORKDIR /app
+
+# # Копируем package.json и устанавливаем зависимости
+# COPY package.json package-lock.json ./
+# RUN npm ci --force
+
+# # Копируем исходники
+# COPY . .
+
+# # Устанавливаем PUBLIC_URL=/ (чтобы пути были /static/css/, /static/js/)
+# ENV PUBLIC_URL=/
+
+# # Собираем
+# RUN npm run build
+
+# # Финальный образ — просто копируем build
+# FROM alpine:latest
+# WORKDIR /app/build
+# COPY --from=builder /app/build .
+# ////////////////////////////////////////////////////////////////
