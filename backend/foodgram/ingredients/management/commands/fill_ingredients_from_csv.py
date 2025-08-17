@@ -1,7 +1,6 @@
 import csv
 
 from django.core.management.base import BaseCommand
-
 from ingredients.models import Ingredient
 
 
@@ -45,7 +44,7 @@ class Command(BaseCommand):
                     except IndexError:
                         self.stdout.write(
                             self.style.ERROR(
-                                f"Ошибка в строке {row_number}:"
+                                f"Ошибка в строке {row_number}: "
                                 "Некорректное количество столбцов"
                             )
                         )

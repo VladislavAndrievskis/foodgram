@@ -1,51 +1,39 @@
-import React, { useContext } from 'react';
-import styles from './style.module.css';
+import cn from 'classnames'
+import styles from './styles.module.css'
+import { useContext } from 'react'
+import { Button, LinkComponent } from '../index.js'
+import { AuthContext } from '../../contexts'
 
-import { AuthContext } from '../../context/authContext';
-import Account from '../account';
-import { LinkComponent } from '../index.js';
+const AccountMenu = ({ onSignOut }) => {
+  const authContext = useContext(AuthContext)
+  if (!authContext) {
+    return <div className={styles.menu}>
+      <LinkComponent
+        className={styles.menuLink}
+        href='/signin'
+        title='Войти'
+      />
+      <LinkComponent
+        href='/signup'
+        title='Создать аккаунт'
+        className={styles.menuButton}
+      />
+    </div>
+  }
+  return <div className={styles.menu}>
+    <LinkComponent
+      className={styles.menuLink}
+      href='/change-password'
+      title='Изменить пароль'
+    />
+    <a
+      className={styles.menuLink}
+      onClick={onSignOut}
+    >
+      Выход
+    </a>
+  </div>
+}
 
-// Меню для незалогиненных
-const NotLoggedInMenu = [
-    { title: 'Войти', href: '/signin' },
-    { title: 'Регистрация', href: '/signup' },
-];
 
-const AccountMenu = ({ onSignOut, orders }) => {
-    const authContext = useContext(AuthContext);
-    const location = window.location; // useLocation не доступен здесь
-
-    if (!authContext) {
-        return (
-            <div className={styles.menu}>
-                {NotLoggedInMenu.map(item => {
-                    return location.pathname === item.href ? (
-                        <button
-                            key={item.href}
-                            type="button"
-                            className={`${styles.menuButton} ${styles.menuButton_dark}`}
-                        >
-                            {item.title}
-                        </button>
-                    ) : (
-                        <LinkComponent
-                            key={item.href}
-                            title={item.title}
-                            href={item.href}
-                            exact
-                            className={styles.menuLink}
-                        />
-                    );
-                })}
-            </div>
-        );
-    }
-
-    return (
-        <div className={styles.menu}>
-            <Account onSignOut={onSignOut} orders={orders} />
-        </div>
-    );
-};
-
-export default AccountMenu;
+export default AccountMenu

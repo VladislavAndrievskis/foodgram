@@ -2,6 +2,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+
 from rest_framework.routers import DefaultRouter
 
 from ingredients.views import IngredientViewSet
@@ -10,26 +11,31 @@ from tags.views import TagViewSet
 from users.api import UserAvatarView
 from users.views import CustomUserViewSet
 
-# Создание роутера
+
+# Create a router for API endpoints
 router = DefaultRouter()
 router.register(r"ingredients", IngredientViewSet, basename="ingredients")
 router.register(r"recipes", RecipeViewSet, basename="recipes")
 router.register(r"tags", TagViewSet, basename="tags")
 router.register(r"users", CustomUserViewSet, basename="users")
 
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include(router.urls)),
     path("api/auth/", include("djoser.urls.authtoken")),
-    # Отдельный маршрут для аватарки — не в роутере!
+    # Separate endpoint for avatar — not in router
     path("api/users/me/avatar/", UserAvatarView.as_view(), name="user-avatar"),
 ]
 
-# Добавление статических и медиа файлов при DEBUG
+
+# Serve media and static files during development
 if settings.DEBUG:
     urlpatterns += static(
-        settings.MEDIA_URL, document_root=settings.MEDIA_ROOT
+        settings.MEDIA_URL,
+        document_root=settings.MEDIA_ROOT,
     )
     urlpatterns += static(
-        settings.STATIC_URL, document_root=settings.STATIC_ROOT
+        settings.STATIC_URL,
+        document_root=settings.STATIC_ROOT,
     )
