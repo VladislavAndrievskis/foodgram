@@ -11,6 +11,8 @@ import {
 } from '../../components';
 import { useRecipes } from '../../utils/index.js';
 import styles from './styles.module.css';
+import { Helmet } from 'react-helmet';
+
 
 const HomePage = ({ updateOrders }) => {
     const {
