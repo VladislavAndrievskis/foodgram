@@ -3,7 +3,7 @@ name: Main FOODGRAM workflow
 on:
   push:
     branches:
-      - main  # или master, в зависимости от твоей ветки
+      - main
 
 jobs:
   tests:
@@ -19,9 +19,9 @@ jobs:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: 3.12
       - name: Install dependencies
@@ -44,9 +44,9 @@ jobs:
   frontend_tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
       - name: Install dependencies
@@ -62,9 +62,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: frontend_tests
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
       - name: Install and build frontend
@@ -73,10 +73,11 @@ jobs:
           npm ci
           npm run build
       - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: frontend-build
           path: frontend/dist/
+          retention-days: 1
 
   build_and_push_to_docker_hub:
     name: Push Django Docker image to DockerHub
@@ -84,16 +85,16 @@ jobs:
     needs: tests
     steps:
       - name: Check out repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
       - name: Login to DockerHub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Build and push backend image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: ./backend/foodgram/
           push: true
@@ -105,21 +106,21 @@ jobs:
     needs: build_frontend
     steps:
       - name: Download frontend build
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: frontend-build
           path: frontend/dist/
       - name: Check out repo (for Dockerfile)
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
       - name: Login to DockerHub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Build and push frontend image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: ./frontend/
           push: true
@@ -130,20 +131,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
       - name: Login to DockerHub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Build and push gateway image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: ./infra/
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/foodgram_gateway:latest  # Замени на свой тег, если нужно
+          tags: ${{ secrets.DOCKER_USERNAME }}/foodgram_gateway:latest
 
   deploy:
     runs-on: ubuntu-latest
@@ -153,7 +154,7 @@ jobs:
       - build_gateway_and_push_to_docker_hub
     steps:
       - name: Check out repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Upload files to server
         uses: appleboy/scp-action@master
@@ -171,7 +172,7 @@ jobs:
           username: ${{ secrets.USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            set -e  # останавливаемся при ошибке
+            set -e
             cd /home/${{ secrets.USER }}/foodgram
             echo "Останавливаем контейнеры..."
             sudo docker compose -f docker-compose.production.yml down || true
@@ -188,7 +189,7 @@ jobs:
             sudo docker compose -f docker-compose.production.yml exec -T backend python manage.py collectstatic --noinput
             echo "Чистим временные файлы..."
             rm -f /tmp/foodgram-deploy.tar.gz
-            echo "Деплой завершён успешно!"
+            echo "✅ Деплой завершён успешно!"
 
   send_message:
     runs-on: ubuntu-latest
