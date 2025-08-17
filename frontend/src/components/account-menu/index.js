@@ -1,22 +1,35 @@
+import React, { useContext } from 'react';
+import styles from './style.module.css';
+
+import { AuthContext } from '../../context/authContext';
+import Account from '../account';
+import { LinkComponent } from '../index.js';
+
+// Меню для незалогиненных
+const NotLoggedInMenu = [
+    { title: 'Войти', href: '/signin' },
+    { title: 'Регистрация', href: '/signup' },
+];
+
 const AccountMenu = ({ onSignOut, orders }) => {
     const authContext = useContext(AuthContext);
-    const location = useLocation();
+    const location = window.location; // useLocation не доступен здесь
+
     if (!authContext) {
         return (
             <div className={styles.menu}>
                 {NotLoggedInMenu.map(item => {
                     return location.pathname === item.href ? (
-                        <Button
-                            key={item.href} // ✅ Добавлен ключ
-                            href={item.href}
-                            modifier="style_dark"
-                            className={styles.menuButton}
+                        <button
+                            key={item.href}
+                            type="button"
+                            className={`${styles.menuButton} ${styles.menuButton_dark}`}
                         >
                             {item.title}
-                        </Button>
+                        </button>
                     ) : (
                         <LinkComponent
-                            key={item.href} // ✅ Добавлен ключ
+                            key={item.href}
                             title={item.title}
                             href={item.href}
                             exact
@@ -27,9 +40,12 @@ const AccountMenu = ({ onSignOut, orders }) => {
             </div>
         );
     }
+
     return (
         <div className={styles.menu}>
             <Account onSignOut={onSignOut} orders={orders} />
         </div>
     );
 };
+
+export default AccountMenu;
