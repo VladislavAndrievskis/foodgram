@@ -1,4 +1,5 @@
 import csv
+
 from django.core.management.base import BaseCommand
 from ingredients.models import Ingredient
 
@@ -35,14 +36,16 @@ class Command(BaseCommand):
                         if not created:
                             self.stdout.write(
                                 self.style.WARNING(
-                                    f"Ингредиент {obj} уже существует в базе данных."
+                                    f"Ингредиент {obj} уже существует"
+                                    "в базе данных."
                                 )
                             )
 
                     except IndexError:
                         self.stdout.write(
                             self.style.ERROR(
-                                f"Ошибка в строке {row_number}: Некорректное количество столбцов"
+                                f"Ошибка в строке {row_number}:"
+                                "Некорректное количество столбцов"
                             )
                         )
                     except Exception as error:

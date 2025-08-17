@@ -1,39 +1,31 @@
-# //////////////////PRODUCION CONTAINER////////////////////////
-# # Создать образ на основе базового слоя,
-# # который содержит файлы ОС и интерпретатор Python 3.12.
-# FROM python:3.13-slim
+# ================== БЭКЕНД (Django) ==================
+FROM python:3.13-slim
 
-# # Установка базовых зависимостей
-# RUN apt-get update && \
-#     apt-get install -y build-essential libssl-dev zlib1g-dev \
-#     libbz2-dev libreadline-dev libsqlite3-dev wget \
-#     curl llvm libncurses5-dev libncursesw5-dev \
-#     xz-utils tk-dev libffi-dev liblzma-dev python3-openssl
-# RUN apt-get update && apt-get install -y postgresql-client
-    
+# Установка системных зависимостей
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    libssl-dev \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# # Установка pip и setuptools
-# RUN python3 -m ensurepip && \
-#     pip3 install --upgrade pip setuptools
+# Установка pip
+RUN python3 -m ensurepip && \
+    pip3 install --upgrade pip setuptools
 
-# # Переходим в образе в директорию /app: в ней будем хранить код проекта.
-# # Если директории с указанным именем нет, она будет создана. 
-# # Название директории может быть любым.
-# WORKDIR /app
-# # Дальнейшие инструкции будут выполняться в директории /app
+# Рабочая директория
+WORKDIR /app
 
-# # Скопировать с локального компьютера файл зависимостей
-# # в текущую директорию (текущая директория — это /app).
-# COPY requirements.txt .
+# Копируем requirements и устанавливаем зависимости
+COPY requirements.txt .
+RUN pip install -r requirements.txt --no-cache-dir
 
-# # Выполнить в текущей директории команду терминала
-# # для установки зависимостей.
-# RUN pip install -r requirements.txt --no-cache-dir
+# Копируем код проекта
+COPY . .
 
-# # Скопировать всё необходимое содержимое 
-# # той директории локального компьютера, где сохранён Dockerfile,
-# # в текущую рабочую директорию образа — /app.
-# COPY . .
+# Порт по умолчанию
+EXPOSE 8000
 
-# CMD ["gunicorn", "--bind", "0.0.0.0:8000", "foodgram.wsgi"]
-# ////////////////////////////////////////////////////////////////////
+# Запуск Gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "foodgram.wsgi"]

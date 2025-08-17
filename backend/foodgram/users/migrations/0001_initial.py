@@ -15,31 +15,64 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Subscription',
+            name="Subscription",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('author', models.ForeignKey(help_text='Пользователь, на которого оформлена подписка', on_delete=django.db.models.deletion.CASCADE, related_name='followers', to=settings.AUTH_USER_MODEL, verbose_name='Автор')),
-                ('user', models.ForeignKey(help_text='Пользователь, оформивший подписку', on_delete=django.db.models.deletion.CASCADE, related_name='subscriptions', to=settings.AUTH_USER_MODEL, verbose_name='Подписчик')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "author",
+                    models.ForeignKey(
+                        help_text="Пользователь, на которого оформлена подписка",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="followers",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Автор",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        help_text="Пользователь, оформивший подписку",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="subscriptions",
+                        to=settings.AUTH_USER_MODEL,
+                        verbose_name="Подписчик",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'подписка',
-                'verbose_name_plural': 'подписки',
+                "verbose_name": "подписка",
+                "verbose_name_plural": "подписки",
             },
         ),
         migrations.AddIndex(
-            model_name='subscription',
-            index=models.Index(fields=['user'], name='users_subsc_user_id_3be018_idx'),
+            model_name="subscription",
+            index=models.Index(fields=["user"], name="users_subsc_user_id_3be018_idx"),
         ),
         migrations.AddIndex(
-            model_name='subscription',
-            index=models.Index(fields=['author'], name='users_subsc_author__32a342_idx'),
+            model_name="subscription",
+            index=models.Index(
+                fields=["author"], name="users_subsc_author__32a342_idx"
+            ),
         ),
         migrations.AddConstraint(
-            model_name='subscription',
-            constraint=models.CheckConstraint(check=models.Q(('user', models.F('author')), _negated=True), name='no_self_subscribe'),
+            model_name="subscription",
+            constraint=models.CheckConstraint(
+                check=models.Q(("user", models.F("author")), _negated=True),
+                name="no_self_subscribe",
+            ),
         ),
         migrations.AddConstraint(
-            model_name='subscription',
-            constraint=models.UniqueConstraint(fields=('user', 'author'), name='unique_subscription'),
+            model_name="subscription",
+            constraint=models.UniqueConstraint(
+                fields=("user", "author"), name="unique_subscription"
+            ),
         ),
     ]

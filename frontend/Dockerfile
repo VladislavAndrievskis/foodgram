@@ -1,23 +1,32 @@
-# //////////////////PRODUCTION CONTAINER////////////////////////
-# FROM node:18 as builder
+# ================== ФРОНТЕНД (React/Vue) ==================
+# Этап 1: Сборка
+FROM node:16-alpine AS builder
 
-# WORKDIR /app
+WORKDIR /app
 
-# # Копируем package.json и устанавливаем зависимости
-# COPY package.json package-lock.json ./
-# RUN npm ci --force
+# Копируем package.json и package-lock.json
+COPY package*.json ./
 
-# # Копируем исходники
-# COPY . .
+# Устанавливаем зависимости
+RUN npm ci --legacy-peer-deps
 
-# # Устанавливаем PUBLIC_URL=/ (чтобы пути были /static/css/, /static/js/)
-# ENV PUBLIC_URL=/
+# Копируем исходники
+COPY . .
 
-# # Собираем
-# RUN npm run build
+# Сборка проекта
+RUN npm run build
 
-# # Финальный образ — просто копируем build
-# FROM alpine:latest
-# WORKDIR /app/build
-# COPY --from=builder /app/build .
-# ////////////////////////////////////////////////////////////////
+# Этап 2: Сервинг через Nginx
+FROM nginx:alpine
+
+# Копируем кастомный конфиг (опционально, можно в docker-compose)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Копируем собранные файлы из builder
+COPY --from=builder /app/build /usr/share/nginx/html
+
+# Открываем порт
+EXPOSE 80
+
+# Запускаем Nginx
+CMD ["nginx", "-g", "daemon off;"]

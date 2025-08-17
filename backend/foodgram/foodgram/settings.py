@@ -1,9 +1,9 @@
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv  # pyright: ignore[reportMissingImports]
 
 load_dotenv()
-
-from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -117,12 +117,11 @@ USE_L10N = True
 USE_TZ = True
 
 
-STATIC_URL = "/static/"
-STATIC_ROOT = str(BASE_DIR / "/app/static/"
-                  )
+STATIC_URL = "/django-static/"
+STATIC_ROOT = "/app/static"
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = str(BASE_DIR / "media")
+MEDIA_ROOT = "/app/media"
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
@@ -132,7 +131,13 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.TokenAuthentication",
     ],
     "SEARCH_PARAM": "name",
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.FormParser",
+        "rest_framework.parsers.MultiPartParser",  # ✅ Для загрузки файлов
+    ],
 }
+
 
 DJOSER = {
     "LOGIN_FIELD": "email",

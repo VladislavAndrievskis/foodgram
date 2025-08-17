@@ -1,12 +1,11 @@
-from rest_framework.routers import DefaultRouter
-
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
-
+from users.api import UserAvatarView
 from ingredients.views import IngredientViewSet
 from recipes.views import RecipeViewSet
+from rest_framework.routers import DefaultRouter
 from tags.views import TagViewSet
 from users.views import CustomUserViewSet
 
@@ -19,8 +18,10 @@ router.register(r"users", CustomUserViewSet, basename="users")
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/", include((router.urls, "api"), namespace="api")),
+    path("api/", include(router.urls)),
     path("api/auth/", include("djoser.urls.authtoken")),
+    # Отдельный маршрут для аватарки — не в роутере!
+    path("api/users/me/avatar/", UserAvatarView.as_view(), name="user-avatar"),
 ]
 
 # Добавление статических и медиа файлов при DEBUG
