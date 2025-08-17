@@ -11,6 +11,7 @@ import { ChangePasswordText } from '../../components/change-password-text';
 import { AuthContext } from '../../contexts';
 import { useFormWithValidation } from '../../utils';
 import styles from './styles.module.css';
+import { Helmet } from 'react-helmet-async';
 
 const ChangePassword = ({ onPasswordChange, submitError, setSubmitError }) => {
     const { values, handleChange, errors, isValid, resetForm } =
