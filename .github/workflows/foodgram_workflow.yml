@@ -181,8 +181,8 @@ jobs:
             echo "Останавливаем контейнеры..."
             sudo docker compose -f docker-compose.production.yml down || true
             echo "Удаляем старые файлы..."
-            rm -f docker-compose.production.yml
-            rm -rf frontend/
+            sudo rm -f docker-compose.production.yml
+            sudo rm -rf frontend/
             echo "Распаковываем новые файлы..."
             sudo tar -xzf /tmp/foodgram-deploy.tar.gz -C /home/${{ secrets.USER }}/foodgram
             echo "Запускаем контейнеры..."
@@ -192,7 +192,7 @@ jobs:
             echo "Собираем статику..."
             sudo docker compose -f docker-compose.production.yml exec -T backend python manage.py collectstatic --noinput
             echo "Чистим временные файлы..."
-            rm -f /tmp/foodgram-deploy.tar.gz
+            sudo rm -f /tmp/foodgram-deploy.tar.gz
             echo "✅ Деплой завершён успешно!"
 
   send_message:
