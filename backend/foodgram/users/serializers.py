@@ -1,9 +1,12 @@
 import base64
 import uuid
+
 from django.contrib.auth import get_user_model
+from django.core.files.base import ContentFile
 from djoser.serializers import UserCreateSerializer, UserSerializer
-from recipes.models import Recipe
 from rest_framework import serializers
+
+from recipes.models import Recipe
 
 from .models import Profile, Subscription
 
@@ -98,8 +101,42 @@ class SubscriptionSerializer(CustomUserSerializer):
 
 
 class AvatarSerializer(serializers.ModelSerializer):
-    avatar = serializers.ImageField(required=False)
+    avatar = serializers.CharField(
+        write_only=True
+    )  # Принимаем base64 как строку
 
     class Meta:
         model = Profile
-        fields = ("avatar",)
+        fields = ('avatar',)
+
+    def validate_avatar(self, value):
+        if not value.startswith('data:image'):
+            raise serializers.ValidationError('Неверный формат изображения.')
+
+        try:
+            # Разделяем header и данные
+            header, data = value.split(';base64,')
+
+            # Получаем расширение файла
+            file_ext = header.split('/')[-1]
+
+            # Проверяем допустимые форматы
+            if file_ext.lower() not in ['jpeg', 'jpg', 'png']:
+                raise serializers.ValidationError(
+                    'Неподдерживаемый формат изображения'
+                )
+
+            # Декодируем и создаем файл
+            decoded_file = ContentFile(
+                base64.b64decode(data),
+                name=f'avatar_{uuid.uuid4().hex[:8]}.{file_ext}',
+            )
+
+            return decoded_file
+
+        except ValueError:
+            raise serializers.ValidationError('Некорректная base64 строка')
+        except Exception as e:
+            raise serializers.ValidationError(
+                f'Ошибка обработки изображения: {str(e)}'
+            )

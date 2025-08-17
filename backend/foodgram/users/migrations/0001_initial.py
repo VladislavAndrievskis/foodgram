@@ -54,7 +54,9 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="subscription",
-            index=models.Index(fields=["user"], name="users_subsc_user_id_3be018_idx"),
+            index=models.Index(
+                fields=["user"], name="users_subsc_user_id_3be018_idx"
+            ),
         ),
         migrations.AddIndex(
             model_name="subscription",

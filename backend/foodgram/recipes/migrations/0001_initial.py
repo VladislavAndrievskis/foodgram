@@ -40,14 +40,17 @@ class Migration(migrations.Migration):
                 (
                     "text",
                     models.TextField(
-                        help_text="Описание рецепта", verbose_name="Описание рецепта"
+                        help_text="Описание рецепта",
+                        verbose_name="Описание рецепта",
                     ),
                 ),
                 (
                     "cooking_time",
                     models.PositiveSmallIntegerField(
                         help_text="Время приготовления (в минутах)",
-                        validators=[django.core.validators.MinValueValidator(1)],
+                        validators=[
+                            django.core.validators.MinValueValidator(1)
+                        ],
                         verbose_name="Время приготовления (в минутах)",
                     ),
                 ),
@@ -62,7 +65,8 @@ class Migration(migrations.Migration):
                 (
                     "pub_date",
                     models.DateTimeField(
-                        auto_now_add=True, verbose_name="Дата публикации рецепта"
+                        auto_now_add=True,
+                        verbose_name="Дата публикации рецепта",
                     ),
                 ),
                 (
@@ -166,7 +170,9 @@ class Migration(migrations.Migration):
                 (
                     "amount",
                     models.PositiveSmallIntegerField(
-                        validators=[django.core.validators.MinValueValidator(1)],
+                        validators=[
+                            django.core.validators.MinValueValidator(1)
+                        ],
                         verbose_name="Количество",
                     ),
                 ),

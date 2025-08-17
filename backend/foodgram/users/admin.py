@@ -1,6 +1,7 @@
 from django.contrib import admin
+from django.utils.html import format_html
 
-from .models import Subscription, Profile
+from .models import Profile, Subscription
 
 
 @admin.register(Subscription)
@@ -18,8 +19,8 @@ class ProfileAdmin(admin.ModelAdmin):
     def avatar_preview(self, obj):
         if obj.avatar:
             return format_html(
-                '<img src="{}" style="width: 100px; height: 100px; border-radius: 50%;" />',
-                obj.avatar.url,
+                '<img src="{}" width="100" height="100" style="border:50%">',
+                obj.avatar.url
             )
         return "Нет аватара"
 
