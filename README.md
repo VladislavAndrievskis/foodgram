@@ -27,7 +27,7 @@
 
 ### Настройка и запуск
 
-1. **Форкните репозиторий**: [VladislavAndrievskis/kittygram_final](https://github.com/VladislavAndrievskis/Foodgram.git)
+1. **Форкните репозиторий**: [VladislavAndrievskis/Foodgram](https://github.com/VladislavAndrievskis/Foodgram.git)
 2. **Клонируйте репозиторий** на свой компьютер
 3. **Настройте секреты** в GitHub:
    * В настройках репозитория перейдите в **Secrets and variables/actions**
