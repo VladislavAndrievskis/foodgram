@@ -12,7 +12,7 @@ User = get_user_model()
 
 class UserAvatarView(APIView):
     permission_classes = [permissions.IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = []
 
     def put(self, request):
         user = request.user
