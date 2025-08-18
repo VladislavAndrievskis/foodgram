@@ -1,11 +1,9 @@
-import base64
-import uuid
-
 from django.contrib.auth import get_user_model
-from django.core.files.base import ContentFile
 from djoser.serializers import UserCreateSerializer, UserSerializer
-from recipes.models import Recipe
+from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
+
+from recipes.models import Recipe
 
 from .models import Profile, Subscription
 
@@ -100,42 +98,20 @@ class SubscriptionSerializer(CustomUserSerializer):
 
 
 class AvatarSerializer(serializers.ModelSerializer):
-    avatar = serializers.CharField(
-        write_only=True
-    )  # Принимаем base64 как строку
+    avatar = Base64ImageField(
+        required=True,
+        help_text="Изображение в формате base64 (data:image/png;base64,...)",
+    )
 
     class Meta:
         model = Profile
         fields = ('avatar',)
 
-    def validate_avatar(self, value):
-        if not value.startswith('data:image'):
-            raise serializers.ValidationError('Неверный формат изображения.')
+    def update(self, instance, validated_data):
+        # Удаляем старый аватар если он есть
+        if instance.avatar:
+            instance.avatar.delete()
 
-        try:
-            # Разделяем header и данные
-            header, data = value.split(';base64,')
-
-            # Получаем расширение файла
-            file_ext = header.split('/')[-1]
-
-            # Проверяем допустимые форматы
-            if file_ext.lower() not in ['jpeg', 'jpg', 'png']:
-                raise serializers.ValidationError(
-                    'Неподдерживаемый формат изображения'
-                )
-
-            # Декодируем и создаем файл
-            decoded_file = ContentFile(
-                base64.b64decode(data),
-                name=f'avatar_{uuid.uuid4().hex[:8]}.{file_ext}',
-            )
-
-            return decoded_file
-
-        except ValueError:
-            raise serializers.ValidationError('Некорректная base64 строка')
-        except Exception as e:
-            raise serializers.ValidationError(
-                f'Ошибка обработки изображения: {str(e)}'
-            )
+        instance.avatar = validated_data['avatar']
+        instance.save()
+        return instance
