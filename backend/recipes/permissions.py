@@ -1,8 +1,12 @@
+"""
+Разрешения: только автор или админ может редактировать.
+"""
+
 from rest_framework import permissions
 
 
 class IsAuthorOrAdminPermission(permissions.BasePermission):
-    message = "Только у админа или автора контента есть доступ."
+    message = "Изменение и удаление доступно только автору или администратору."
 
     def has_permission(self, request, view):
         return (

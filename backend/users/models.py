@@ -59,7 +59,7 @@ class Profile(models.Model):
         "Аватар",
         upload_to="users/avatars/",
         blank=True,
-        null=True,  # не default=None — это избыточно
+        null=True,
         validators=[FileExtensionValidator(["png", "jpg", "jpeg"])],
     )
 

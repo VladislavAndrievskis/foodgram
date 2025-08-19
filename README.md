@@ -48,7 +48,7 @@
 1. Создайте виртуальное окружение
 2. Установите зависимости:
    ```bash
-   pip install -r backend/Foodgram/requirements.txt
+   pip install -r backend/requirements.txt
    ```
 3. Запустите тесты:
    ```bash
