@@ -102,6 +102,13 @@ class UserSerializer(serializers.ModelSerializer):
             and Subscription.objects.filter(user=user, author=obj).exists()
         )
 
+    def create(self, validated_data):
+        password = validated_data.pop("password")
+        user = User.objects.create(**validated_data)
+        user.set_password(password)
+        user.save()
+        return user
+
     def get_avatar(self, obj):
         request = self.context.get("request")
         if hasattr(obj, "profile") and obj.profile.avatar:

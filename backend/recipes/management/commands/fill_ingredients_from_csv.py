@@ -14,7 +14,7 @@ class Command(BaseCommand):
         print("Заполнение модели Ingredient из csv запущено.")
 
         # Указываем кодировку UTF-8 при открытии файла
-        file_path = options["path"] + "ingredients.csv"
+        file_path = options["path"]
         try:
             with open(file_path, "r", encoding="utf-8") as csv_file:
                 reader = csv.reader(csv_file)

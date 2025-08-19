@@ -158,6 +158,17 @@ class UserViewSet(viewsets.GenericViewSet):
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
     pagination_class = PageNumberPagination
 
+    def create(self, request):
+        """Регистрация нового пользователя."""
+        serializer = UserSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()  # noqa: F841
+            # Не возвращаем пароль
+            response_data = serializer.data.copy()
+            response_data.pop("password", None)
+            return Response(response_data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     def list(self, request):
         """Список пользователей."""
         page = self.paginate_queryset(self.get_queryset())
@@ -263,7 +274,7 @@ class UserAvatarView(APIView):
         profile, created = Profile.objects.get_or_create(user=user)
         serializer = AvatarSerializer(profile, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()  # ← автоматически сохранит avatar
+        serializer.save()
         avatar_url = request.build_absolute_uri(profile.avatar.url)
         return Response({"avatar": avatar_url}, status=status.HTTP_200_OK)
 
