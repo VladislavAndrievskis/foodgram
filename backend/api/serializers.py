@@ -83,7 +83,6 @@ class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
 
-    
     class Meta:
         model = User
         fields = (

@@ -22,7 +22,7 @@ from .serializers import (
     TagSerializer,
     SubscriptionSerializer,
     AvatarSerializer,
-    )
+)
 from recipes.filters import RecipeFilter
 from .pagination import PageNumberPagination
 from recipes.models import (
@@ -193,7 +193,8 @@ class UserViewSet(DjoserUserViewSet):
     def unsubscribe(self, request, id=None):
         """Отписаться от автора."""
         author = get_object_or_404(User, id=id)
-        subscription = get_object_or_404(Subscription, user=request.user, author=author)
+        subscription = get_object_or_404(Subscription, user=request.user,
+                                         author=author)
         subscription.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
