@@ -48,28 +48,31 @@ class Ingredient(models.Model):
 
     name = models.CharField(
         max_length=NAME_MAX_LENGTH,
-        verbose_name="Название",
-        help_text="Например: картофель, соль",
+        verbose_name="Название ингредиента",
+        help_text="Название ингредиента",
     )
+
     measurement_unit = models.CharField(
         max_length=MEASUREMENT_UNIT_MAX_LENGTH,
-        verbose_name="Единица измерения",
-        help_text="Например: г, шт, мл",
+        verbose_name="Единица измерения ингредиента",
+        help_text="Единица измерения ингредиента",
     )
 
     class Meta:
+
         verbose_name = "ингредиент"
+
         verbose_name_plural = "Ингредиенты"
-        constraints = [
+
+        constraints = (
             models.UniqueConstraint(
-                fields=["name", "measurement_unit"],
-                name="unique_ingredient_unit",
-            )
-        ]
-        ordering = ["name"]
+                fields=("name", "measurement_unit"), name="unique_ingredient"
+            ),
+        )
 
     def __str__(self):
-        return f"{self.name}, {self.measurement_unit}"
+
+        return self.name
 
 
 class Recipe(models.Model):
@@ -160,22 +163,6 @@ class RecipeIngredient(models.Model):
 
     def __str__(self):
         return f"{self.ingredient} — {self.amount}"
-
-
-class RecipeTag(models.Model):
-    """
-    Связь рецепт — тег.
-    """
-
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
-    tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["recipe", "tag"], name="unique_recipe_tag"
-            )
-        ]
 
 
 class UserRecipeRelation(models.Model):

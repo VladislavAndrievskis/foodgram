@@ -4,20 +4,18 @@
 
 from django.db.models import Count, F, OuterRef, Subquery, Sum
 from django.http import HttpResponse
-
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import exceptions, permissions, status, viewsets
+from rest_framework import exceptions, filters, permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import JSONParser, MultiPartParser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-# Импортируем всё из api.serializers — где теперь все сериализаторы
 from .serializers import (
     IngredientSerializer,
-    RecipeReadSerializer,
-    RecipeWriteSerializer,
+    RecipeCreateUpdateSerializer,
+    RecipeSerializer,
     ShortRecipeSerializer,
     TagSerializer,
     SubscriptionSerializer,
@@ -28,7 +26,7 @@ from recipes.models import (
     Favorite,
     Ingredient,
     Recipe,
-    RecipeIngredient,
+    RecipeIngredients,  # Добавлен: используется в download_shopping_cart
     ShoppingCart,
     Tag,
 )
@@ -41,8 +39,6 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = (permissions.AllowAny,)
-    pagination_class = None
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -50,105 +46,102 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    permission_classes = (permissions.AllowAny,)
-    pagination_class = None
+    filter_backends = (filters.SearchFilter,)
     search_fields = ("^name",)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    """CRUD рецептов + избранное, корзина, скачивание."""
+    """Вьюсет для управления рецептами: создание, редактирование, фильтр."""
 
-    queryset = Recipe.objects.select_related("author").prefetch_related(
-        "tags", "recipe_ingredients__ingredient"
-    )
+    queryset = Recipe.objects.all()
     permission_classes = (IsAuthorOrAdminPermission,)
-    pagination_class = PageNumberPagination
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
+    pagination_class = PageNumberPagination
 
     def get_serializer_class(self):
-        if self.action in ("create", "update", "partial_update"):
-            return RecipeWriteSerializer
-        return RecipeReadSerializer
+        if self.action in ("create", "partial_update"):
+            return RecipeCreateUpdateSerializer
+        return RecipeSerializer
 
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
-
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[permissions.IsAuthenticated],
-    )
-    def favorite(self, request, pk=None):
-        return self._add_to_relation(request, pk, Favorite)
-
-    @favorite.mapping.delete
-    def unfavorite(self, request, pk=None):
-        return self._remove_from_relation(request, pk, Favorite)
-
-    @action(
-        detail=True,
-        methods=["post"],
-        permission_classes=[permissions.IsAuthenticated],
-    )
-    def shopping_cart(self, request, pk=None):
-        return self._add_to_relation(request, pk, ShoppingCart)
-
-    @shopping_cart.mapping.delete
-    def delete_shopping_cart(self, request, pk=None):
-        return self._remove_from_relation(request, pk, ShoppingCart)
-
-    def _add_to_relation(self, request, pk, model):
-        user = request.user
-        recipe = get_object_or_404(Recipe, pk=pk)
-        if model.objects.filter(user=user, recipe=recipe).exists():
-            raise exceptions.ValidationError(
-                f"Рецепт уже в {model._meta.verbose_name}."
-            )
-        model.objects.create(user=user, recipe=recipe)
-        serializer = ShortRecipeSerializer(
-            recipe, context={"request": request}
+    @staticmethod
+    def _create_relation(user, recipe, model, serializer_class):
+        """Создаёт связь (избранное / корзина), используя сериализатор."""
+        serializer = serializer_class(
+            data={"user": user.id, "recipe": recipe.id},
+            context={"request": user},
         )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def _remove_from_relation(self, request, pk, model):
-        user = request.user
-        recipe = get_object_or_404(Recipe, pk=pk)
+    @staticmethod
+    def _delete_relation(user, recipe, model):
+        """Удаляет связь. Возвращает 204 или 400, если связи не было."""
         deleted, _ = model.objects.filter(user=user, recipe=recipe).delete()
         if not deleted:
-            raise exceptions.ValidationError(
-                f"Рецепт не был в {model._meta.verbose_name}."
-            )
+            raise exceptions.ValidationError("Рецепт не найден в списке.")
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
-        detail=False,
-        methods=["get"],
-        permission_classes=[permissions.IsAuthenticated],
+        detail=True, methods=("post",), permission_classes=(IsAuthenticated,)
+    )
+    def favorite(self, request, pk=None):
+        """Добавить рецепт в избранное."""
+        user = request.user
+        recipe = get_object_or_404(Recipe, pk=pk)
+        return self._create_relation(
+            user, recipe, Favorite, ShortRecipeSerializer
+        )
+
+    @favorite.mapping.delete
+    def delete_favorite(self, request, pk=None):
+        """Удалить рецепт из избранного."""
+        user = request.user
+        recipe = get_object_or_404(Recipe, pk=pk)
+        return self._delete_relation(user, recipe, Favorite)
+
+    @action(
+        detail=True, methods=("post",), permission_classes=(IsAuthenticated,)
+    )
+    def shopping_cart(self, request, pk=None):
+        """Добавить рецепт в список покупок."""
+        user = request.user
+        recipe = get_object_or_404(Recipe, pk=pk)
+        return self._create_relation(
+            user, recipe, ShoppingCart, ShortRecipeSerializer
+        )
+
+    @shopping_cart.mapping.delete
+    def delete_shopping_cart(self, request, pk=None):
+        """Удалить рецепт из списка покупок."""
+        user = request.user
+        recipe = get_object_or_404(Recipe, pk=pk)
+        return self._delete_relation(user, recipe, ShoppingCart)
+
+    @action(
+        detail=False, methods=("get",), permission_classes=(IsAuthenticated,)
     )
     def download_shopping_cart(self, request):
-        """Скачать список покупок."""
-        user = request.user
+        """Скачать список покупок в формате .txt."""
         ingredients = (
-            RecipeIngredient.objects.filter(recipe__shopping_list__user=user)
+            RecipeIngredients.objects.filter(
+                recipe__shopping_cart__user=request.user
+            )
             .values(
                 name=F("ingredient__name"),
-                unit=F("ingredient__measurement_unit"),
+                measurement_unit=F("ingredient__measurement_unit"),
             )
             .annotate(amount=Sum("amount"))
             .order_by("name")
         )
-        if not ingredients:
-            return Response(
-                {"detail": "Список покупок пуст."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        buy_list_text = "Список покупок — Foodgram:\n\n"
+
+        buy_list_text = "Список покупок с сайта Foodgram:\n\n"
         buy_list_text += "\n".join(
-            f"{item['name']} — {item['amount']} {item['unit']}"
+            f"{item['name']}, {item['amount']} {item['measurement_unit']}"
             for item in ingredients
         )
-        buy_list_text += "\n\nСпасибо за использование Foodgram!"
+
         response = HttpResponse(buy_list_text, content_type="text/plain")
         response["Content-Disposition"] = (
             'attachment; filename="shopping-list.txt"'
@@ -157,7 +150,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
 
 class UserViewSet(viewsets.GenericViewSet):
-    """Управление подписками."""
+    """Управление подписками и аватаром."""
 
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
     pagination_class = PageNumberPagination
@@ -166,6 +159,7 @@ class UserViewSet(viewsets.GenericViewSet):
         detail=False, methods=["get"], serializer_class=SubscriptionSerializer
     )
     def subscriptions(self, request):
+        """Список авторов, на которых подписан пользователь."""
         user = request.user
         authors_ids = user.subscriptions.values_list("author_id", flat=True)
         queryset = (
@@ -187,6 +181,7 @@ class UserViewSet(viewsets.GenericViewSet):
         detail=True, methods=["post"], serializer_class=SubscriptionSerializer
     )
     def subscribe(self, request, id=None):
+        """Подписаться на автора."""
         user = request.user
         author = get_object_or_404(User, id=id)
         if user == author:
@@ -199,6 +194,7 @@ class UserViewSet(viewsets.GenericViewSet):
 
     @subscribe.mapping.delete
     def unsubscribe(self, request, id=None):
+        """Отписаться от автора."""
         user = request.user
         author = get_object_or_404(User, id=id)
         deleted, _ = Subscription.objects.filter(
@@ -215,6 +211,7 @@ class UserViewSet(viewsets.GenericViewSet):
         parser_classes=[JSONParser, MultiPartParser],
     )
     def avatar(self, request):
+        """Загрузить аватар."""
         profile = request.user.profile
         avatar = request.data.get("avatar")
         if not avatar:
@@ -231,9 +228,10 @@ class UserViewSet(viewsets.GenericViewSet):
 
     @avatar.mapping.delete
     def delete_avatar(self, request):
+        """Удалить аватар."""
         profile = request.user.profile
         if profile.avatar:
-            profile.avatar.delete()
+            profile.avatar.delete(save=True)
             profile.avatar = None
             profile.save()
         return Response(status=status.HTTP_204_NO_CONTENT)

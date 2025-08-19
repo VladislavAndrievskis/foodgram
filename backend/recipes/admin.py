@@ -5,10 +5,12 @@
 from django.contrib import admin
 from django.db import models
 
-from .models import Recipe
+from .models import Recipe, Tag
 
 
 class RecipeIngredientInline(admin.TabularInline):
+    """Инлайн для ингредиентов в рецепте."""
+
     model = Recipe.ingredients.through
     extra = 1
     min_num = 1
@@ -16,6 +18,8 @@ class RecipeIngredientInline(admin.TabularInline):
 
 
 class RecipeTagInline(admin.TabularInline):
+    """Инлайн для тегов в рецепте."""
+
     model = Recipe.tags.through
     extra = 1
     min_num = 1
@@ -24,6 +28,8 @@ class RecipeTagInline(admin.TabularInline):
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
+    """Админ-панель для рецептов."""
+
     list_display = (
         "id",
         "name",
@@ -32,13 +38,15 @@ class RecipeAdmin(admin.ModelAdmin):
         "author",
         "favorites_count",
     )
+    list_display_links = ("id", "name")
     search_fields = ("name", "author__username", "author__email")
-    list_filter = ("pub_date", "tags")
+    list_filter = ("pub_date", "author", "tags")
     date_hierarchy = "pub_date"
     inlines = (RecipeIngredientInline, RecipeTagInline)
+    readonly_fields = ("favorites_count",)
 
     def favorites_count(self, obj):
-        return obj.favorites.count()
+        return obj.favorites_count
 
     favorites_count.short_description = "В избранном"
     favorites_count.admin_order_field = "favorites_count"
@@ -46,3 +54,13 @@ class RecipeAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         return queryset.annotate(favorites_count=models.Count("favorites"))
+
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    """Админ-панель для тегов."""
+
+    list_display = ("id", "name", "slug")
+    list_display_links = ("id", "name")
+    search_fields = ("name", "slug")
+    prepopulated_fields = {"slug": ("name",)}

@@ -9,14 +9,6 @@ from .models import Profile, Subscription
 class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "author", "subscribers_count")
     list_select_related = ("user", "author")
-    search_fields = (
-        "user__username",
-        "user__first_name",
-        "user__email",
-        "author__username",
-        "author__first_name",
-        "author__email",
-    )
 
     @admin.display(description="Подписчики у автора")
     def subscribers_count(self, obj):
@@ -29,7 +21,6 @@ class SubscriptionAdmin(admin.ModelAdmin):
 class ProfileAdmin(admin.ModelAdmin):
     list_display = (
         "user",
-        "recipes_count",
         "subscribers_count",
         "avatar_preview",
     )
