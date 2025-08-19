@@ -109,13 +109,12 @@ class Recipe(models.Model):
     )
     tags = models.ManyToManyField(
         Tag,
-        through="RecipeTag",
         related_name="recipes",
         verbose_name="Теги",
     )
     ingredients = models.ManyToManyField(
         Ingredient,
-        through="RecipeIngredient",
+        through="RecipeIngredients",
         related_name="recipes",
         verbose_name="Ингредиенты",
     )
@@ -129,7 +128,7 @@ class Recipe(models.Model):
         return self.name
 
 
-class RecipeIngredient(models.Model):
+class RecipeIngredients(models.Model):
     """
     Связь рецепт — ингредиент (с количеством).
     """
