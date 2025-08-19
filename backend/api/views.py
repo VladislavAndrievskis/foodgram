@@ -2,14 +2,15 @@
 Вьюсеты API: рецепты, теги, ингредиенты, пользователи.
 """
 
-from django.db.models import Count, F, OuterRef, Subquery, Sum
+from djoser.views import UserViewSet as DjoserUserViewSet
+from django.db.models import F, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import exceptions, filters, permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.parsers import JSONParser, FormParser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -21,8 +22,7 @@ from .serializers import (
     TagSerializer,
     SubscriptionSerializer,
     AvatarSerializer,
-    UserSerializer,
-)
+    )
 from recipes.filters import RecipeFilter
 from .pagination import PageNumberPagination
 from recipes.models import (
@@ -152,118 +152,49 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return response
 
 
-class UserViewSet(viewsets.GenericViewSet):
-    """Управление пользователями, подписками и аватаром."""
-
-    permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
-    pagination_class = PageNumberPagination
-
-    def create(self, request):
-        """Регистрация нового пользователя."""
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()  # noqa: F841
-            # Не возвращаем пароль
-            response_data = serializer.data.copy()
-            response_data.pop("password", None)
-            return Response(response_data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    create.permission_classes = [AllowAny]
-
-    def list(self, request):
-        """Список пользователей."""
-        page = self.paginate_queryset(self.get_queryset())
-        serializer = UserSerializer(
-            page, many=True, context={'request': request}
-        )
-        return self.get_paginated_response(serializer.data)
-
-    def retrieve(self, request, pk=None):
-        """Профиль пользователя по ID."""
-        user = get_object_or_404(self.get_queryset(), pk=pk)
-        serializer = UserSerializer(user, context={'request': request})
-        return Response(serializer.data)
+class UserViewSet(DjoserUserViewSet):
+    """
+    Кастомизированный UserViewSet с функционалом подписок.
+    Наследует всё от Djoser: регистрация, /me/, авторизация.
+    Добавлены: /users/subscriptions/, /users/{id}/subscribe/.
+    """
 
     @action(
-        detail=False, methods=["get"], serializer_class=SubscriptionSerializer
+        detail=False,
+        methods=["get"],
+        serializer_class=SubscriptionSerializer,
     )
     def subscriptions(self, request):
         """Список авторов, на которых подписан пользователь."""
         user = request.user
         authors_ids = user.subscriptions.values_list("author_id", flat=True)
-        queryset = (
-            User.objects.filter(id__in=authors_ids)
-            .annotate(
-                recipes_count=Subquery(
-                    Recipe.objects.filter(author=OuterRef("id")).aggregate(
-                        count=Count("id")
-                    )["count"]
-                )
-            )
-            .prefetch_related("recipes")
-        )
+        queryset = User.objects.filter(id__in=authors_ids)
         page = self.paginate_queryset(queryset)
         serializer = self.get_serializer(page, many=True)
         return self.get_paginated_response(serializer.data)
 
     @action(
-        detail=True, methods=["post"], serializer_class=SubscriptionSerializer
+        detail=True,
+        methods=["post"],
+        serializer_class=SubscriptionSerializer,
     )
     def subscribe(self, request, id=None):
         """Подписаться на автора."""
-        user = request.user
         author = get_object_or_404(User, id=id)
-        if user == author:
-            raise exceptions.ValidationError("Нельзя подписаться на себя.")
-        if Subscription.objects.filter(user=user, author=author).exists():
-            raise exceptions.ValidationError("Вы уже подписаны.")
-        Subscription.objects.create(user=user, author=author)
-        serializer = self.get_serializer(author)
+        serializer = self.get_serializer(data={
+            "user": request.user.id,
+            "author": author.id
+        })
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @subscribe.mapping.delete
     def unsubscribe(self, request, id=None):
         """Отписаться от автора."""
-        user = request.user
         author = get_object_or_404(User, id=id)
-        deleted, _ = Subscription.objects.filter(
-            user=user, author=author
-        ).delete()
-        if not deleted:
-            raise exceptions.ValidationError("Вы не были подписаны.")
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(
-        detail=False,
-        methods=["patch"],
-        permission_classes=[IsAuthenticated],
-        parser_classes=[JSONParser, MultiPartParser],
-    )
-    def avatar(self, request):
-        """Загрузить аватар."""
-        profile = request.user.profile
-        avatar = request.data.get("avatar")
-        if not avatar:
-            return Response(
-                {"avatar": "Это поле обязательно."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        profile.avatar = avatar
-        profile.save()
-        return Response(
-            {"avatar": request.build_absolute_uri(profile.avatar.url)},
-            status=status.HTTP_200_OK,
-        )
-
-    @avatar.mapping.delete
-    def delete_avatar(self, request):
-        """Удалить аватар."""
-        profile = request.user.profile
-        if profile.avatar:
-            profile.avatar.delete(save=True)
-            profile.avatar = None
-            profile.save()
+        subscription = get_object_or_404(Subscription, user=request.user, author=author)
+        subscription.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

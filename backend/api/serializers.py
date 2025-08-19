@@ -83,6 +83,7 @@ class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
 
+    
     class Meta:
         model = User
         fields = (
@@ -282,7 +283,6 @@ class SubscriptionSerializer(UserSerializer):
             "email",
             "is_subscribed",
             "recipes",
-            "recipes_count",
         )
 
     def get_recipes(self, obj):
