@@ -10,11 +10,9 @@ class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "author", "subscribers_count")
     list_select_related = ("user", "author")
 
-    @admin.display(description="Подписчики у автора")
+    @admin.display(description="Количество подписчиков автора")
     def subscribers_count(self, obj):
-        return obj.author.subscribers.count()
-
-    subscribers_count.short_description = "Количество подписчиков автора"
+        return obj.author.followers.count()
 
 
 @admin.register(Profile)
@@ -37,7 +35,7 @@ class ProfileAdmin(admin.ModelAdmin):
             .prefetch_related("user__recipes")
             .annotate(
                 _recipes_count=Count("user__recipes", distinct=True),
-                _subscribers_count=Count("user__subscribers", distinct=True),
+                _subscribers_count=Count("user__followers", distinct=True),
             )
         )
 

@@ -8,9 +8,10 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import exceptions, filters, permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.parsers import JSONParser, MultiPartParser
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .serializers import (
     IngredientSerializer,
@@ -19,6 +20,8 @@ from .serializers import (
     ShortRecipeSerializer,
     TagSerializer,
     SubscriptionSerializer,
+    AvatarSerializer,
+    UserSerializer,
 )
 from recipes.filters import RecipeFilter
 from .pagination import PageNumberPagination
@@ -31,7 +34,7 @@ from recipes.models import (
     Tag,
 )
 from recipes.permissions import IsAuthorOrAdminPermission
-from users.models import User, Subscription
+from users.models import User, Subscription, Profile
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -150,10 +153,24 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
 
 class UserViewSet(viewsets.GenericViewSet):
-    """Управление подписками и аватаром."""
+    """Управление пользователями, подписками и аватаром."""
 
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
     pagination_class = PageNumberPagination
+
+    def list(self, request):
+        """Список пользователей."""
+        page = self.paginate_queryset(self.get_queryset())
+        serializer = UserSerializer(
+            page, many=True, context={'request': request}
+        )
+        return self.get_paginated_response(serializer.data)
+
+    def retrieve(self, request, pk=None):
+        """Профиль пользователя по ID."""
+        user = get_object_or_404(self.get_queryset(), pk=pk)
+        serializer = UserSerializer(user, context={'request': request})
+        return Response(serializer.data)
 
     @action(
         detail=False, methods=["get"], serializer_class=SubscriptionSerializer
@@ -230,6 +247,31 @@ class UserViewSet(viewsets.GenericViewSet):
     def delete_avatar(self, request):
         """Удалить аватар."""
         profile = request.user.profile
+        if profile.avatar:
+            profile.avatar.delete(save=True)
+            profile.avatar = None
+            profile.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class UserAvatarView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [JSONParser, FormParser]
+
+    def put(self, request):
+        user = request.user
+        profile, created = Profile.objects.get_or_create(user=user)
+        serializer = AvatarSerializer(profile, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()  # ← автоматически сохранит avatar
+        avatar_url = request.build_absolute_uri(profile.avatar.url)
+        return Response({"avatar": avatar_url}, status=status.HTTP_200_OK)
+
+    def delete(self, request):
+        try:
+            profile = Profile.objects.get(user=request.user)
+        except Profile.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
         if profile.avatar:
             profile.avatar.delete(save=True)
             profile.avatar = None

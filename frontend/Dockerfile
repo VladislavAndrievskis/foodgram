@@ -1,4 +1,4 @@
-# ================== ФРОНТЕНД (React/Vue) ==================
+# # ================== ФРОНТЕНД (React/Vue) ==================
 # Этап 1: Сборка
 FROM node:16-alpine AS builder
 
@@ -30,3 +30,25 @@ EXPOSE 80
 
 # Запускаем Nginx
 CMD ["nginx", "-g", "daemon off;"]
+# Используем образ с Node.js
+# FROM node:18-alpine
+
+# # Рабочая директория в контейнере
+# WORKDIR /app
+
+# # Копируем package.json и устанавливаем зависимости
+# COPY package.json .
+
+# RUN npm install
+
+# # Копируем исходники
+# COPY . .
+
+# # Собираем проект
+# RUN npm run build
+
+# # Устанавливаем serve для раздачи статики
+# RUN npm install -g serve
+
+# # Запускаем сервер
+# CMD ["serve", "-s", "build", "-l", "3000"]

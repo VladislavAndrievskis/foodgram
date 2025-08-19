@@ -5,8 +5,10 @@
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
+
 from drf_extra_fields.fields import Base64ImageField
 from django.core.validators import MinValueValidator
+
 
 from recipes.models import (
     Ingredient,
@@ -16,10 +18,10 @@ from recipes.models import (
     Favorite,
     ShoppingCart,
 )
+
 from users.models import User, Subscription, Profile
 
 
-# Вспомогательные сериализаторы (зависимости)
 class TagSerializer(serializers.ModelSerializer):
     """Сериализатор для тегов."""
 

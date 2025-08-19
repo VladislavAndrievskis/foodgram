@@ -26,11 +26,8 @@ class Subscription(models.Model):
     )
 
     class Meta:
-
         verbose_name = "подписка"
-
         verbose_name_plural = "подписки"
-
         constraints = [
             models.CheckConstraint(
                 check=~Q(user=F("author")), name="no_self_subscribe"
@@ -46,13 +43,10 @@ class Subscription(models.Model):
         ]
 
     def __str__(self):
-
         return f"Подписка {self.user.username} на {self.author.username}"
 
     def clean(self):
-
         if self.user == self.author:
-
             raise ValidationError("Нельзя подписаться на самого себя")
 
 
@@ -73,11 +67,8 @@ class Profile(models.Model):
     )
 
     class Meta:
-
         verbose_name = "профиль"
-
         verbose_name_plural = "профили"
 
     def __str__(self):
-
         return f"Профиль {self.user.username}"
