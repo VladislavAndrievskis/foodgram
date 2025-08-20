@@ -10,6 +10,7 @@ from .models import Recipe, Tag, Ingredient
 
 class RecipeIngredientInline(admin.TabularInline):
     """Инлайн для ингредиентов в рецепте."""
+
     model = Recipe.ingredients.through
     extra = 1
     min_num = 1
@@ -63,15 +64,16 @@ class TagAdmin(admin.ModelAdmin):
     search_fields = ("name", "slug")
     prepopulated_fields = {"slug": ("name",)}
 
+
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
     """Админ-панель для управления ингредиентами."""
 
     # Поля, отображаемые в списке
     list_display = (
-    "id",
-    "name",
-    "measurement_unit",
+        "id",
+        "name",
+        "measurement_unit",
     )
     list_display_links = ("id", "name")  # Кликабельные для редактирования
     search_fields = ("name", "measurement_unit")
