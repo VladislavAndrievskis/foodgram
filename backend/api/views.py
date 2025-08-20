@@ -67,12 +67,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeCreateUpdateSerializer
         return RecipeSerializer
 
-    @staticmethod
     def _create_relation(user, recipe, model, serializer_class):
         """Создаёт связь (избранное / корзина), используя сериализатор."""
         serializer = serializer_class(
             data={"user": user.id, "recipe": recipe.id},
-            context={"request": user},
+            context={"request": request}, # type: ignore  # noqa: F821
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -89,13 +88,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(
         detail=True, methods=("post",), permission_classes=(IsAuthenticated,)
     )
+    @action(detail=True, methods=("post",), permission_classes=(
+        IsAuthenticated,)
+    )
     def favorite(self, request, pk=None):
-        """Добавить рецепт в избранное."""
-        user = request.user
         recipe = get_object_or_404(Recipe, pk=pk)
-        return self._create_relation(
-            user, recipe, Favorite, ShortRecipeSerializer
-        )
+        return self._create_relation(request, recipe, Favorite,
+                                     ShortRecipeSerializer)
+
 
     @favorite.mapping.delete
     def delete_favorite(self, request, pk=None):
@@ -107,13 +107,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(
         detail=True, methods=("post",), permission_classes=(IsAuthenticated,)
     )
+    @action(detail=True, methods=("post",), permission_classes=(IsAuthenticated,))
     def shopping_cart(self, request, pk=None):
-        """Добавить рецепт в список покупок."""
-        user = request.user
         recipe = get_object_or_404(Recipe, pk=pk)
-        return self._create_relation(
-            user, recipe, ShoppingCart, ShortRecipeSerializer
-        )
+        return self._create_relation(request, recipe, ShoppingCart, ShortRecipeSerializer)
+
 
     @shopping_cart.mapping.delete
     def delete_shopping_cart(self, request, pk=None):

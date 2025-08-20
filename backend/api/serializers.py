@@ -155,16 +155,25 @@ class RecipeSerializer(serializers.ModelSerializer):
         exclude = ("pub_date",)
 
     def get_is_favorited(self, obj):
-        user = self.context["request"].user
-        if user.is_anonymous:
+        request = self.context.get("request")
+        if not request or request.user.is_anonymous:
             return False
-        return user.favorite.filter(recipe=obj).exists()
+        try:
+            return request.user.favorite.filter(recipe=obj).exists()
+        except Exception as e:
+            print("Ошибка в is_favorited:", e)
+            return False
+
 
     def get_is_in_shopping_cart(self, obj):
-        user = self.context["request"].user
-        if user.is_anonymous:
+        request = self.context.get("request")
+        if not request or request.user.is_anonymous:
             return False
-        return user.shopping_cart.filter(recipe=obj).exists()
+        try:
+            return request.user.shopping_cart.filter(recipe=obj).exists()
+        except Exception as e:
+            print("Ошибка в is_in_shopping_cart:", e)
+            return False
 
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
@@ -259,9 +268,8 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return instance
 
     def to_representation(self, instance):
-        """Возвращает данные через основной сериализатор."""
         return RecipeSerializer(
-            instance, context={"request": self.context["request"]}
+            instance, context={"request": self.context.get("request")}
         ).data
 
 
