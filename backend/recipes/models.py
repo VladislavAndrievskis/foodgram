@@ -172,6 +172,7 @@ class UserRecipeRelation(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
+        related_name="%(class)ss",
         verbose_name="Пользователь",
     )
     recipe = models.ForeignKey(
@@ -185,6 +186,7 @@ class UserRecipeRelation(models.Model):
 
     def __str__(self):
         return f"{self.recipe} — {self.user}"
+
 
 
 class Favorite(UserRecipeRelation):
@@ -201,6 +203,9 @@ class Favorite(UserRecipeRelation):
             )
         ]
         ordering = ["-id"]
+
+    def __str__(self):
+        return f"{self.recipe} — {self.user}"
 
 
 class ShoppingCart(UserRecipeRelation):
