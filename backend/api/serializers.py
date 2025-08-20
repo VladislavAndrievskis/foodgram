@@ -232,7 +232,8 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             author = self.context["request"].user
 
             recipe = Recipe.objects.create(author=author, **validated_data)
-            self._create_ingredients_and_tags(recipe, ingredients_data, tags_data)
+            self._create_ingredients_and_tags(recipe, ingredients_data,
+                                              tags_data)
             return recipe
         except Exception as e:
             raise ValidationError(f"Ошибка создания рецепта: {str(e)}")
