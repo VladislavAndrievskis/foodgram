@@ -17,22 +17,11 @@ class RecipeIngredientInline(admin.TabularInline):
     validate_min = True
 
 
-# class RecipeTagInline(admin.TabularInline):
-#     """Инлайн для тегов в рецепте."""
-#     model = Recipe.tags.through
-#     extra = 1
-#     min_num = 1
-#     validate_min = True
-
-
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
-    """Админ-панель для рецептов."""
-
     list_display = (
         "id",
         "name",
-        "text",
         "pub_date",
         "author",
         "favorites_count_display",
@@ -45,14 +34,17 @@ class RecipeAdmin(admin.ModelAdmin):
     readonly_fields = ("favorites_count_display",)
 
     def favorites_count_display(self, obj):
-        return obj.favorites_count
+        if hasattr(obj, 'favorites_count'):
+            return obj.favorites_count
+        return obj.favorites.count()
 
     favorites_count_display.short_description = "В избранном"
     favorites_count_display.admin_order_field = "favorites_count"
 
     def get_queryset(self, request):
-        queryset = super().get_queryset(request)
-        return queryset.annotate(favorites_count=models.Count("favorites"))
+        return super().get_queryset(request).annotate(
+            favorites_count=models.Count("favorites")
+        )
 
 
 @admin.register(Tag)
