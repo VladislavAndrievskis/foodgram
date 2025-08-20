@@ -140,72 +140,37 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
 
 
 class RecipeSerializer(serializers.ModelSerializer):
-    author = UserSerializer(
-        read_only=True
-    )  # Сериализация автора рецепта
-    tags = TagSerializer(many=True)  # Множественные теги
-    ingredients = serializers.SerializerMethodField(
-        method_name="get_ingredients"
-    )  # Метод для получения ингредиентов
-    is_favorited = serializers.SerializerMethodField(
-        method_name="get_is_favorited"
-    )  # Проверка на избранное
-    is_in_shopping_cart = serializers.SerializerMethodField(
-        method_name="get_is_in_shopping_cart"
-    )  # Проверка в корзине
+    """Основной сериализатор рецепта (чтение)."""
 
-    def get_ingredients(self, obj):
-        # Получаем связанные ингредиенты через модель RecipeIngredients
-        ingredients = RecipeIngredients.objects.filter(recipe=obj)
-        serializer = RecipeIngredientsSerializer(ingredients, many=True)
-        return serializer.data
-
-    def get_is_favorited(self, obj):
-        user = self.context["request"].user  # Получаем текущего пользователя
-        # Проверяем, что пользователь авторизован и рецепт в избранном
-        return (
-            not user.is_anonymous and obj.favorite.filter(user=user).exists()
-        )
-
-    def get_is_in_shopping_cart(self, obj):
-        user = self.context["request"].user  # Получаем текущего пользователя
-        # Проверяем, что пользователь авторизован и рецепт в корзине
-        return (
-            not user.is_anonymous
-            and obj.shopping_cart.filter(user=user).exists()
-        )
+    author = UserSerializer(read_only=True)
+    tags = TagSerializer(many=True, read_only=True)
+    ingredients = RecipeIngredientsSerializer(
+        source="recipeingredients_set", many=True, read_only=True
+    )
+    is_favorited = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
 
     class Meta:
-        model = Recipe  # Основная модель для сериализации
-        exclude = ("pub_date",)  # Исключаем поле pub_date из сериализации
+        model = Recipe
+        exclude = ("pub_date",)
 
+    def get_is_favorited(self, obj):
+        return False
 
-# class RecipeSerializer(serializers.ModelSerializer):
-#     """Основной сериализатор рецепта (чтение)."""
+    def get_is_in_shopping_cart(self, obj):
+        return False
 
-#     author = UserSerializer(read_only=True)
-#     tags = TagSerializer(many=True, read_only=True)
-#     ingredients = RecipeIngredientsSerializer(
-#         source="recipeingredients_set", many=True, read_only=True
-#     )
-#     is_favorited = serializers.SerializerMethodField()
-#     is_in_shopping_cart = serializers.SerializerMethodField()
+    # def get_is_favorited(self, obj):
+    #     user = self.context["request"].user
+    #     if user.is_anonymous:
+    #         return False
+    #     return user.favorite.filter(recipe=obj).exists()
 
-#     class Meta:
-#         model = Recipe
-#         exclude = ("pub_date",)
-
-#     def get_is_favorited(self, obj):
-#         user = self.context["request"].user
-#         if user.is_anonymous:
-#             return False
-#         return user.favorite.filter(recipe=obj).exists()
-
-#     def get_is_in_shopping_cart(self, obj):
-#         user = self.context["request"].user
-#         if user.is_anonymous:
-#             return False
-#         return user.shopping_cart.filter(recipe=obj).exists()
+    # def get_is_in_shopping_cart(self, obj):
+    #     user = self.context["request"].user
+    #     if user.is_anonymous:
+    #         return False
+    #     return user.shopping_cart.filter(recipe=obj).exists()
 
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
