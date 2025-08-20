@@ -68,11 +68,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return RecipeSerializer
 
     @staticmethod
-    def _create_relation(self, request, recipe, model, serializer_class):
+    def _create_relation(user, recipe, model, serializer_class):
         """Создаёт связь (избранное / корзина), используя сериализатор."""
         serializer = serializer_class(
-            data={"user": request.user.id, "recipe": recipe.id},
-            context={"request": request},
+            data={"user": user.id, "recipe": recipe.id},
+            context={"request": user},
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -90,10 +90,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
         detail=True, methods=("post",), permission_classes=(IsAuthenticated,)
     )
     def favorite(self, request, pk=None):
-        user = request.user  # noqa: F841
+        """Добавить рецепт в избранное."""
+        user = request.user
         recipe = get_object_or_404(Recipe, pk=pk)
         return self._create_relation(
-            request, recipe, Favorite, ShortRecipeSerializer
+            user, recipe, Favorite, ShortRecipeSerializer
         )
 
     @favorite.mapping.delete
@@ -107,10 +108,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
         detail=True, methods=("post",), permission_classes=(IsAuthenticated,)
     )
     def shopping_cart(self, request, pk=None):
-        user = request.user  # noqa: F841
+        """Добавить рецепт в список покупок."""
+        user = request.user
         recipe = get_object_or_404(Recipe, pk=pk)
         return self._create_relation(
-            request, recipe, ShoppingCart, ShortRecipeSerializer
+            user, recipe, ShoppingCart, ShortRecipeSerializer
         )
 
     @shopping_cart.mapping.delete
@@ -179,9 +181,10 @@ class UserViewSet(DjoserUserViewSet):
     def subscribe(self, request, id=None):
         """Подписаться на автора."""
         author = get_object_or_404(User, id=id)
-        serializer = self.get_serializer(
-            data={"user": request.user.id, "author": author.id}
-        )
+        serializer = self.get_serializer(data={
+            "user": request.user.id,
+            "author": author.id
+        })
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -190,9 +193,8 @@ class UserViewSet(DjoserUserViewSet):
     def unsubscribe(self, request, id=None):
         """Отписаться от автора."""
         author = get_object_or_404(User, id=id)
-        subscription = get_object_or_404(
-            Subscription, user=request.user, author=author
-        )
+        subscription = get_object_or_404(Subscription, user=request.user,
+                                         author=author)
         subscription.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
