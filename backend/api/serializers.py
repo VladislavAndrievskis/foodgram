@@ -164,7 +164,6 @@ class RecipeSerializer(serializers.ModelSerializer):
             print("Ошибка в is_favorited:", e)
             return False
 
-
     def get_is_in_shopping_cart(self, obj):
         request = self.context.get("request")
         if not request or request.user.is_anonymous:
