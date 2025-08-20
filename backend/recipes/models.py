@@ -188,7 +188,6 @@ class UserRecipeRelation(models.Model):
         return f"{self.recipe} — {self.user}"
 
 
-
 class Favorite(UserRecipeRelation):
     """
     Избранное.

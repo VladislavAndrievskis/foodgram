@@ -10,6 +10,7 @@ from api.views import (
     RecipeViewSet,
     TagViewSet,
     UserViewSet,
+    UserAvatarView
 )
 
 router = DefaultRouter()
@@ -21,4 +22,5 @@ router.register(r"users", UserViewSet, basename="users")
 urlpatterns = [
     path("", include(router.urls)),
     path("auth/", include("djoser.urls.authtoken")),
+    path('users/me/avatar/', UserAvatarView.as_view(), name='user-avatar'),
 ]
