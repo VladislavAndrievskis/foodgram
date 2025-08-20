@@ -2,6 +2,7 @@
 Вьюсеты API: рецепты, теги, ингредиенты, пользователи.
 """
 
+from urllib import request
 from djoser.views import UserViewSet as DjoserUserViewSet
 from django.db.models import F, Sum
 from django.http import HttpResponse
@@ -56,6 +57,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     """Вьюсет для управления рецептами: создание, редактирование, фильтр."""
 
+
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthorOrAdminPermission,)
     filter_backends = (DjangoFilterBackend,)
@@ -68,11 +70,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return RecipeSerializer
 
     @staticmethod
-    def _create_relation(user, recipe, model, serializer_class):
+    def _create_relation(self, request, recipe, model, serializer_class):
         """Создаёт связь (избранное / корзина), используя сериализатор."""
         serializer = serializer_class(
-            data={"user": user.id, "recipe": recipe.id},
-            context={"request": user},
+            data={"user": request.user.id, "recipe": recipe.id},
+            context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -90,11 +92,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
         detail=True, methods=("post",), permission_classes=(IsAuthenticated,)
     )
     def favorite(self, request, pk=None):
-        """Добавить рецепт в избранное."""
         user = request.user
         recipe = get_object_or_404(Recipe, pk=pk)
         return self._create_relation(
-            user, recipe, Favorite, ShortRecipeSerializer
+            request, recipe, Favorite, ShortRecipeSerializer
         )
 
     @favorite.mapping.delete
@@ -108,11 +109,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
         detail=True, methods=("post",), permission_classes=(IsAuthenticated,)
     )
     def shopping_cart(self, request, pk=None):
-        """Добавить рецепт в список покупок."""
         user = request.user
         recipe = get_object_or_404(Recipe, pk=pk)
         return self._create_relation(
-            user, recipe, ShoppingCart, ShortRecipeSerializer
+            request, recipe, ShoppingCart, ShortRecipeSerializer
         )
 
     @shopping_cart.mapping.delete
