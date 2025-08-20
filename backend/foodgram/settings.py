@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY", "default_secret_key")
 
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [
     "89.169.181.37",  # ваш публичный IP
@@ -74,23 +74,23 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "foodgram.wsgi.application"
 
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": "db.sqlite3",
-#     }
-# }
-
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME", "foodgram"),
-        "USER": os.getenv("POSTGRES_USER", "foodgram_user"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "foodgram_password"),
-        "HOST": os.getenv("DB_HOST", "127.0.0.1"),
-        "PORT": os.getenv("DB_PORT", "5432"),
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": "db.sqlite3",
     }
 }
+
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.postgresql",
+#         "NAME": os.getenv("DB_NAME", "foodgram"),
+#         "USER": os.getenv("POSTGRES_USER", "foodgram_user"),
+#         "PASSWORD": os.getenv("POSTGRES_PASSWORD", "foodgram_password"),
+#         "HOST": os.getenv("DB_HOST", "127.0.0.1"),
+#         "PORT": os.getenv("DB_PORT", "5432"),
+#     }
+# }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -145,8 +145,12 @@ DJOSER = {
     "LOGIN_FIELD": "email",
     "SERIALIZERS": {
         "user_create": "api.serializers.UserCreateSerializer",
+        "user_delete": "djoser.serializers.UserDeleteSerializer",
         "user": "api.serializers.UserSerializer",
         "current_user": "api.serializers.UserSerializer",
+    },
+    "PERMISSIONS": {
+        "user_delete": ["djoser.permissions.CurrentUserOrAdmin"],
     },
 }
 CORS_ORIGIN_ALLOW_ALL = True

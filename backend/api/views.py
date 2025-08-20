@@ -29,7 +29,7 @@ from recipes.models import (
     Favorite,
     Ingredient,
     Recipe,
-    RecipeIngredients,  # Добавлен: используется в download_shopping_cart
+    RecipeIngredients,
     ShoppingCart,
     Tag,
 )

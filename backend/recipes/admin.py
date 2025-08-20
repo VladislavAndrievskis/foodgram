@@ -1,5 +1,3 @@
-# recipes/admin.py
-
 """
 Админка: рецепты с ингредиентами и тегами.
 """
@@ -7,7 +5,7 @@
 from django.contrib import admin
 from django.db import models
 
-from .models import Recipe, Tag
+from .models import Recipe, Tag, Ingredient
 
 
 class RecipeIngredientInline(admin.TabularInline):
@@ -18,12 +16,12 @@ class RecipeIngredientInline(admin.TabularInline):
     validate_min = True
 
 
-class RecipeTagInline(admin.TabularInline):
-    """Инлайн для тегов в рецепте."""
-    model = Recipe.tags.through
-    extra = 1
-    min_num = 1
-    validate_min = True
+# class RecipeTagInline(admin.TabularInline):
+#     """Инлайн для тегов в рецепте."""
+#     model = Recipe.tags.through
+#     extra = 1
+#     min_num = 1
+#     validate_min = True
 
 
 @admin.register(Recipe)
@@ -42,7 +40,7 @@ class RecipeAdmin(admin.ModelAdmin):
     search_fields = ("name", "author__username", "author__email")
     list_filter = ("pub_date", "author", "tags")
     date_hierarchy = "pub_date"
-    inlines = (RecipeIngredientInline, RecipeTagInline)
+    inlines = (RecipeIngredientInline,)
     readonly_fields = ("favorites_count_display",)
 
     def favorites_count_display(self, obj):
@@ -64,3 +62,21 @@ class TagAdmin(admin.ModelAdmin):
     list_display_links = ("id", "name")
     search_fields = ("name", "slug")
     prepopulated_fields = {"slug": ("name",)}
+
+@admin.register(Ingredient)
+class IngredientAdmin(admin.ModelAdmin):
+    """Админ-панель для управления ингредиентами."""
+
+    # Поля, отображаемые в списке
+    list_display = (
+    "id",
+    "name",
+    "measurement_unit",
+    )
+    list_display_links = ("id", "name")  # Кликабельные для редактирования
+    search_fields = ("name", "measurement_unit")
+    list_filter = ("name", "measurement_unit")
+    ordering = ("name",)
+    save_on_top = True
+    verbose_name = "Ингредиент"
+    verbose_name_plural = "Ингредиенты"
