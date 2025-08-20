@@ -3,10 +3,9 @@
 """
 
 from django.core.exceptions import ValidationError
-from rest_framework import serializers
-
 from drf_extra_fields.fields import Base64ImageField
 from django.core.validators import MinValueValidator
+from rest_framework import serializers
 
 
 from recipes.models import (
@@ -73,7 +72,6 @@ class CreateUpdateRecipeIngredientsSerializer(serializers.ModelSerializer):
         fields = ("id", "amount")
 
 
-# Основные сериализаторы
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для отображения пользователя."""
 
@@ -184,7 +182,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     image = Base64ImageField()
     cooking_time = serializers.IntegerField(
         validators=[
-            serializers.MinValueValidator(
+            MinValueValidator(
                 1, message="Время приготовления должно быть не менее 1 минуты."
             )
         ]
