@@ -160,7 +160,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         user = self.context["request"].user
         return (
             not user.is_anonymous
-            and user.favorites.filter(recipe=obj).exists()
+            and user.favorite.filter(recipe=obj).exists()
         )
 
     def get_is_in_shopping_cart(self, obj):
@@ -230,7 +230,13 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         tags_data = validated_data.pop("tags")
         author = self.context["request"].user
 
-        # Создаём рецепт
+        cooking_time = validated_data.get("cooking_time")
+        if isinstance(cooking_time, str):
+            try:
+                validated_data["cooking_time"] = int(cooking_time)
+            except (ValueError, TypeError):
+                raise ValidationError({"cooking_time": "должно быть целым."})
+
         recipe = Recipe.objects.create(author=author, **validated_data)
         self._create_ingredients_and_tags(recipe, ingredients_data, tags_data)
 
@@ -240,19 +246,17 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         ingredients_data = validated_data.pop("ingredients", None)
         tags_data = validated_data.pop("tags", None)
 
-        # Обновляем основные поля
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
-        # Обновляем теги
         if tags_data is not None:
             instance.tags.set(tags_data)
 
-        # Обновляем ингредиенты
         if ingredients_data is not None:
             instance.recipeingredients_set.all().delete()
-            self._create_ingredients_and_tags(instance, ingredients_data, tags_data)
+            self._create_ingredients_and_tags(instance, ingredients_data,
+                                              tags_data)
 
         return instance
 

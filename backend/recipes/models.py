@@ -165,14 +165,10 @@ class RecipeIngredients(models.Model):
 
 
 class UserRecipeRelation(models.Model):
-    """
-    Абстрактная модель для избранного и списка покупок.
-    """
-
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="%(class)ss",
+        related_name="%(class)s",
         verbose_name="Пользователь",
     )
     recipe = models.ForeignKey(
