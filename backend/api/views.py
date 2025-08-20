@@ -2,7 +2,6 @@
 Вьюсеты API: рецепты, теги, ингредиенты, пользователи.
 """
 
-from urllib import request
 from djoser.views import UserViewSet as DjoserUserViewSet
 from django.db.models import F, Sum
 from django.http import HttpResponse
@@ -57,7 +56,6 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     """Вьюсет для управления рецептами: создание, редактирование, фильтр."""
 
-
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthorOrAdminPermission,)
     filter_backends = (DjangoFilterBackend,)
@@ -92,7 +90,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         detail=True, methods=("post",), permission_classes=(IsAuthenticated,)
     )
     def favorite(self, request, pk=None):
-        user = request.user
+        user = request.user  # noqa: F841
         recipe = get_object_or_404(Recipe, pk=pk)
         return self._create_relation(
             request, recipe, Favorite, ShortRecipeSerializer
@@ -109,7 +107,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         detail=True, methods=("post",), permission_classes=(IsAuthenticated,)
     )
     def shopping_cart(self, request, pk=None):
-        user = request.user
+        user = request.user  # noqa: F841
         recipe = get_object_or_404(Recipe, pk=pk)
         return self._create_relation(
             request, recipe, ShoppingCart, ShortRecipeSerializer
@@ -181,10 +179,9 @@ class UserViewSet(DjoserUserViewSet):
     def subscribe(self, request, id=None):
         """Подписаться на автора."""
         author = get_object_or_404(User, id=id)
-        serializer = self.get_serializer(data={
-            "user": request.user.id,
-            "author": author.id
-        })
+        serializer = self.get_serializer(
+            data={"user": request.user.id, "author": author.id}
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -193,8 +190,9 @@ class UserViewSet(DjoserUserViewSet):
     def unsubscribe(self, request, id=None):
         """Отписаться от автора."""
         author = get_object_or_404(User, id=id)
-        subscription = get_object_or_404(Subscription, user=request.user,
-                                         author=author)
+        subscription = get_object_or_404(
+            Subscription, user=request.user, author=author
+        )
         subscription.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
