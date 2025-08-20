@@ -15,8 +15,6 @@ from recipes.models import (
     Recipe,
     Tag,
     RecipeIngredients,
-    Favorite,
-    ShoppingCart,
 )
 
 from users.models import User, Subscription, Profile
@@ -175,8 +173,6 @@ class RecipeSerializer(serializers.ModelSerializer):
 
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
-    """Сериализатор для создания и редактирования рецепта."""
-
     author = UserSerializer(read_only=True)
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(), many=True
@@ -196,11 +192,8 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         exclude = ("pub_date",)
         validators = [
             UniqueTogetherValidator(
-                queryset=Favorite.objects.all(), fields=["user", "recipe"]
-            ),
-            UniqueTogetherValidator(
-                queryset=ShoppingCart.objects.all(), fields=["user", "recipe"]
-            ),
+                queryset=Recipe.objects.all(), fields=["author", "title"]
+            )
         ]
 
     def validate_tags(self, value):
@@ -212,7 +205,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         if not value:
             raise ValidationError("Нужно добавить хотя бы один ингредиент.")
 
-        ingredient_ids = [item["id"].id for item in value]
+        ingredient_ids = [item["ingredient"].id for item in value]
         if len(set(ingredient_ids)) != len(ingredient_ids):
             raise ValidationError(
                 "У рецепта не может быть два одинаковых ингредиента."
@@ -221,10 +214,11 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def _create_ingredients_and_tags(recipe, ingredients_data, tags_data):
-        """Создаёт ингредиенты и теги для рецепта."""
         recipe_ingredients = [
             RecipeIngredients(
-                recipe=recipe, ingredient=item["id"], amount=item["amount"]
+                recipe=recipe,
+                ingredient=item["ingredient"],
+                amount=item["amount"]
             )
             for item in ingredients_data
         ]
@@ -232,35 +226,40 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         recipe.tags.set(tags_data)
 
     def create(self, validated_data):
-        ingredients_data = validated_data.pop("ingredients")
-        tags_data = validated_data.pop("tags")
-        author = self.context["request"].user
+        try:
+            ingredients_data = validated_data.pop("ingredients")
+            tags_data = validated_data.pop("tags")
+            author = self.context["request"].user
 
-        recipe = Recipe.objects.create(author=author, **validated_data)
-        self._create_ingredients_and_tags(recipe, ingredients_data, tags_data)
-        return recipe
+            recipe = Recipe.objects.create(author=author, **validated_data)
+            self._create_ingredients_and_tags(recipe, ingredients_data, tags_data)
+            return recipe
+        except Exception as e:
+            raise ValidationError(f"Ошибка создания рецепта: {str(e)}")
 
     def update(self, instance, validated_data):
-        ingredients_data = validated_data.pop("ingredients", None)
-        tags_data = validated_data.pop("tags", None)
+        try:
+            ingredients_data = validated_data.pop("ingredients", None)
+            tags_data = validated_data.pop("tags", None)
 
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.save()
 
-        if tags_data is not None:
-            instance.tags.set(tags_data)
+            if tags_data is not None:
+                instance.tags.set(tags_data)
 
-        if ingredients_data is not None:
-            instance.recipeingredients_set.all().delete()
-            self._create_ingredients_and_tags(
-                instance, ingredients_data, tags_data
-            )
+            if ingredients_data is not None:
+                instance.recipeingredients_set.all().delete()
+                self._create_ingredients_and_tags(
+                    instance, ingredients_data, tags_data
+                )
 
-        return instance
+            return instance
+        except Exception as e:
+            raise ValidationError(f"Ошибка обновления рецепта: {str(e)}")
 
     def to_representation(self, instance):
-        """Возвращает данные через основной сериализатор RecipeSerializer."""
         return RecipeSerializer(
             instance, context={"request": self.context["request"]}
         ).data
