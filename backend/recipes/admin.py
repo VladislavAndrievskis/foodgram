@@ -34,16 +34,14 @@ class RecipeAdmin(admin.ModelAdmin):
     readonly_fields = ("favorites_count_display",)
 
     def favorites_count_display(self, obj):
-        if hasattr(obj, 'favorites_count'):
-            return obj.favorites_count
-        return obj.favorites.count()
+        return obj.favorites_count
 
     favorites_count_display.short_description = "В избранном"
     favorites_count_display.admin_order_field = "favorites_count"
 
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(
-            favorites_count=models.Count("favorites")
+            favorites_count=models.Count("favorites", distinct=True)
         )
 
 
