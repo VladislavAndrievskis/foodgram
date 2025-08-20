@@ -140,12 +140,12 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
 
 
 class RecipeSerializer(serializers.ModelSerializer):
-    """Основной сериализатор рецепта (чтение)."""
-
     author = UserSerializer(read_only=True)
-    tags = TagSerializer(many=True, read_only=True)
+    tags = serializers.SerializerMethodField()
     ingredients = RecipeIngredientsSerializer(
-        source="recipeingredients_set", many=True, read_only=True
+        source="ingredients_in_recipe",
+        many=True,
+        read_only=True
     )
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
@@ -154,14 +154,21 @@ class RecipeSerializer(serializers.ModelSerializer):
         model = Recipe
         exclude = ("pub_date",)
 
+    def get_tags(self, obj):
+        request = self.context.get("request")
+        # Если это изменение/создание — возвращаем список id
+        if request and request.method in ("PUT", "PATCH", "POST"):
+            return obj.tags.values_list("id", flat=True)
+        # Иначе — полные объекты
+        return TagSerializer(obj.tags.all(), many=True).data
+
     def get_is_favorited(self, obj):
         request = self.context.get("request")
         if not request or request.user.is_anonymous:
             return False
         try:
             return request.user.favorite.filter(recipe=obj).exists()
-        except Exception as e:
-            print("Ошибка в is_favorited:", e)
+        except Exception:
             return False
 
     def get_is_in_shopping_cart(self, obj):
@@ -170,9 +177,15 @@ class RecipeSerializer(serializers.ModelSerializer):
             return False
         try:
             return request.user.shopping_cart.filter(recipe=obj).exists()
-        except Exception as e:
-            print("Ошибка в is_in_shopping_cart:", e)
+        except Exception:
             return False
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Убедимся, что ingredients не None
+        if not data.get("ingredients"):
+            data["ingredients"] = []
+        return data
 
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
