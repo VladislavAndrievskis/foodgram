@@ -10,7 +10,7 @@ const Nav = ({ loggedIn, onSignOut, orders }) => {
 
   const [ menuToggled, setMenuToggled ] = useState(false)
   const location = useLocation()
-
+  
   useEffect(() => {
     const cb = () => {
       setMenuToggled(false)
