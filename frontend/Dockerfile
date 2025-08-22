@@ -29,7 +29,7 @@ COPY --from=builder /app/build /usr/share/nginx/html
 EXPOSE 80
 
 # Запускаем Nginx
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["nginx", "-g", "daemon off;"] 
 # # Используем образ с Node.js
 # FROM node:18-alpine
 
