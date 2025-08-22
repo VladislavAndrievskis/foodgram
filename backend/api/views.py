@@ -121,15 +121,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, pk=pk)
         return self._delete_relation(user, recipe, ShoppingCart)
 
-    @action(detail=False, methods="get", permission_classes=[IsAuthenticated])
+    @action(
+    detail=False,
+    methods=["get"],
+    permission_classes=[IsAuthenticated],
+    url_path="download-shopping-cart"
+)
     def download_shopping_cart(self, request):
         """Скачать список покупок в формате .txt."""
-        # Получаем ID рецептов из корзины пользователя
-        recipe_ids = request.user.shopping_cart.values_list(
-            "recipe_id", flat=True
-        )
+        recipe_ids = request.user.shopping_cart.values_list("recipe_id", flat=True)
 
-        # Если корзина пуста
         if not recipe_ids:
             return HttpResponse(
                 "Ваш список покупок пуст. Добавьте рецепты.",
@@ -137,7 +138,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 status=400,
             )
 
-        # Агрегируем ингредиенты
         ingredients = (
             RecipeIngredients.objects.filter(recipe__in=recipe_ids)
             .values(
@@ -148,7 +148,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             .order_by("name")
         )
 
-        # Формируем текст
         buy_list_text = "Список покупок с сайта Foodgram:\n\n"
         buy_list_text += "\n".join(
             f"{item['name']} — {item['amount']} {item['measurement_unit']}"
@@ -156,13 +155,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
         buy_list_text += "\n\nСпасибо, что используете Foodgram 🍲"
 
-        # Отправляем файл
-        response = HttpResponse(
-            buy_list_text, content_type="text/plain; charset=utf-8"
-        )
-        response["Content-Disposition"] = (
-            'attachment; filename="shopping-list.txt"'
-        )
+        response = HttpResponse(buy_list_text, content_type="text/plain; charset=utf-8")
+        response["Content-Disposition"] = 'attachment; filename="shopping-list.txt"'
         return response
 
 
