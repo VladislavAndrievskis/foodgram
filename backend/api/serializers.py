@@ -105,8 +105,6 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    """Сериализатор для создания пользователя."""
-
     class Meta:
         model = User
         fields = (
@@ -121,6 +119,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
+        # Создаём профиль сразу
+        Profile.objects.get_or_create(user=user)
         return user
 
 
