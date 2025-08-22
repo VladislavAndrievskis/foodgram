@@ -366,14 +366,21 @@ class SubscribeSerializer(serializers.ModelSerializer):
         if user == author:
             raise serializers.ValidationError("Нельзя подписаться на себя.")
         if Subscription.objects.filter(user=user, author=author).exists():
-            raise serializers.ValidationError(
-                "Вы уже подписаны на этого пользователя."
-            )
+            raise serializers.ValidationError("Вы уже подписаны на чела.")
         return data
+
+    def save(self, **kwargs):
+        user = self.context["request"].user
+        author = self.validated_data["author"]
+        subscription, created = Subscription.objects.get_or_create(
+            user=user, author=author
+        )
+        return subscription
 
     def to_representation(self, instance):
         return SubscriptionSerializer(
-            instance.author, context={"request": self.context["request"]}
+            instance.author,
+            context={"request": self.context["request"]}
         ).data
 
 
