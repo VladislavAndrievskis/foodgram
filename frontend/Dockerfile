@@ -8,7 +8,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Устанавливаем зависимости
-RUN npm install --legacy-peer-deps
+RUN npm cache clean --force && \
+    npm install --legacy-peer-deps --no-package-lock
 
 
 # Копируем исходники
