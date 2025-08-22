@@ -8,7 +8,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Устанавливаем зависимости
-RUN npm ci --legacy-peer-deps
+RUN npm install --legacy-peer-deps
+
 
 # Копируем исходники
 COPY . .
@@ -29,7 +30,7 @@ COPY --from=builder /app/build /usr/share/nginx/html
 EXPOSE 80
 
 # Запускаем Nginx
-CMD ["nginx", "-g", "daemon off;"] 
+CMD ["nginx", "-g", "daemon off;"]
 # # Используем образ с Node.js
 # FROM node:18-alpine
 
