@@ -120,15 +120,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, pk=pk)
         return self._delete_relation(user, recipe, ShoppingCart)
 
-    @action(
-        detail=False, methods=["get"], permission_classes=[IsAuthenticated]
-    )
+    @action(detail=False, methods="get", permission_classes=IsAuthenticated)
     def download_shopping_cart(self, request):
-        """Скачать список покупок в формате .txt."""
+        """Скачать список покупок в формате.txt."""
+        # Получаем ID рецептов из корзины пользователя
+        recipe_ids = request.user.shopping_cart.values_list(
+            "recipe_id", flat=True
+        )
+
+        # Получаем все ингредиенты этих рецептов
         ingredients = (
-            RecipeIngredients.objects.filter(
-                recipe__shopping_cart__user=request.user
-            )
+            RecipeIngredients.objects.filter(recipe__in=recipe_ids)
             .values(
                 name=F("ingredient__name"),
                 measurement_unit=F("ingredient__measurement_unit"),
@@ -137,13 +139,26 @@ class RecipeViewSet(viewsets.ModelViewSet):
             .order_by("name")
         )
 
+        # Если корзина пуста
+        if not ingredients:
+            return HttpResponse(
+                "Ваш список покупок пуст. Добавьте рецепты.",
+                content_type="text/plain; charset=utf-8",
+                status=400,
+            )
+
+        # Формируем текст
         buy_list_text = "Список покупок с сайта Foodgram:\n\n"
         buy_list_text += "\n".join(
-            f"{item['name']}, {item['amount']} {item['measurement_unit']}"
+            f"{item['name']} — {item['amount']} {item['measurement_unit']}"
             for item in ingredients
         )
+        buy_list_text += "\n\nСпасибо, что используете Foodgram 🍲"
 
-        response = HttpResponse(buy_list_text, content_type="text/plain")
+        # Отправляем как файл
+        response = HttpResponse(
+            buy_list_text, content_type="text/plain; charset=utf-8"
+        )
         response["Content-Disposition"] = (
             'attachment; filename="shopping-list.txt"'
         )
