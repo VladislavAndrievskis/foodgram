@@ -1,19 +1,19 @@
+version: '3.8'
 services:
-  frontend:
-    container_name: foodgram-front
+  backend:
+    build: ../backend
+    ports:
+      - "8000:8000"
+    networks:
+      - foodgram-network
+
+  front:
     build: ../frontend
     ports:
       - "3000:3000"
+    networks:
+      - foodgram-network
 
-  nginx:
-    container_name: foodgram-proxy
-    image: nginx:1.25.4-alpine
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf.template:/etc/nginx/nginx.conf
-      - ../frontend/build:/usr/share/nginx/html
-      - ../docs/:/usr/share/nginx/html/api/docs
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: on-failure
+networks:
+  foodgram-network:
+    driver: bridge

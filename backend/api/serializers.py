@@ -7,14 +7,15 @@ from drf_extra_fields.fields import Base64ImageField
 from django.core.validators import MinValueValidator
 from rest_framework import serializers
 
-
 from recipes.models import (
     Ingredient,
     Recipe,
     Tag,
     RecipeIngredients,
+    UserRecipeRelation,
+    Favorite,
+    ShoppingCart,
 )
-
 from users.models import User, Subscription, Profile
 
 
@@ -91,18 +92,10 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
     def get_is_subscribed(self, obj):
-        user = self.context["request"].user
-        return (
-            not user.is_anonymous
-            and Subscription.objects.filter(user=user, author=obj).exists()
-        )
-
-    def create(self, validated_data):
-        password = validated_data.pop("password")
-        user = User.objects.create(**validated_data)
-        user.set_password(password)
-        user.save()
-        return user
+        user = self.context.get("request").user
+        if not user or user.is_anonymous:
+            return False
+        return Subscription.objects.filter(user=user, author=obj).exists()
 
     def get_avatar(self, obj):
         request = self.context.get("request")
@@ -156,10 +149,8 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def get_tags(self, obj):
         request = self.context.get("request")
-        # Если это изменение/создание — возвращаем список id
         if request and request.method in ("PUT", "PATCH", "POST"):
             return obj.tags.values_list("id", flat=True)
-        # Иначе — полные объекты
         return TagSerializer(obj.tags.all(), many=True).data
 
     def get_is_favorited(self, obj):
@@ -182,16 +173,13 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # Убедимся, что ingredients не None
         if not data.get("ingredients"):
             data["ingredients"] = []
         return data
 
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
-    """
-    Сериализатор для создания и редактирования рецепта.
-    """
+    """Сериализатор для создания и редактирования рецепта."""
 
     author = UserSerializer(read_only=True)
     tags = serializers.PrimaryKeyRelatedField(
@@ -210,19 +198,15 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         exclude = ("pub_date",)
-        # Убраны лишние валидаторы (они не нужны здесь)
 
     def validate_tags(self, value):
-        """Проверка: хотя бы один тег."""
         if not value:
             raise ValidationError("Нужно добавить хотя бы один тег.")
         return value
 
     def validate_ingredients(self, value):
-        """Проверка: хотя бы один ингредиент, без дублей."""
         if not value:
             raise ValidationError("Нужно добавить хотя бы один ингредиент.")
-
         ingredient_ids = [item["id"].id for item in value]
         if len(set(ingredient_ids)) != len(ingredient_ids):
             raise ValidationError(
@@ -232,7 +216,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def _create_ingredients_and_tags(recipe, ingredients_data, tags_data):
-        """Создаёт связь ингредиентов и тегов с рецептом."""
         RecipeIngredients.objects.bulk_create(
             [
                 RecipeIngredients(
@@ -257,7 +240,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
 
         recipe = Recipe.objects.create(author=author, **validated_data)
         self._create_ingredients_and_tags(recipe, ingredients_data, tags_data)
-
         return recipe
 
     def update(self, instance, validated_data):
@@ -272,10 +254,8 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
             instance.tags.set(tags_data)
 
         if ingredients_data is not None:
-            instance.recipeingredients_set.all().delete()
-            self._create_ingredients_and_tags(
-                instance, ingredients_data, tags_data
-            )
+            instance.ingredients_in_recipe.all().delete()
+            self._create_ingredients_and_tags(instance, ingredients_data, tags_data)
 
         return instance
 
@@ -283,6 +263,38 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return RecipeSerializer(
             instance, context={"request": self.context.get("request")}
         ).data
+
+
+class UserRecipeRelationSerializer(serializers.ModelSerializer):
+    """Базовый сериализатор для связей пользователь-рецепт."""
+
+    class Meta:
+        model = UserRecipeRelation
+        fields = ("user", "recipe")
+        # abstract не нужно указывать здесь
+
+    def validate(self, data):
+        user = data["user"]
+        recipe = data["recipe"]
+        model = self.Meta.model
+
+        if model.objects.filter(user=user, recipe=recipe).exists():
+            raise serializers.ValidationError("Уже добавлено.")
+        return data
+
+
+class FavoriteSerializer(UserRecipeRelationSerializer):
+    """Сериализатор для избранного."""
+
+    class Meta(UserRecipeRelationSerializer.Meta):
+        model = Favorite
+
+
+class ShoppingCartSerializer(UserRecipeRelationSerializer):
+    """Сериализатор для корзины."""
+
+    class Meta(UserRecipeRelationSerializer.Meta):
+        model = ShoppingCart
 
 
 class SubscriptionSerializer(UserSerializer):
@@ -301,6 +313,7 @@ class SubscriptionSerializer(UserSerializer):
             "email",
             "is_subscribed",
             "recipes",
+            "recipes_count",
         )
 
     def get_recipes(self, obj):
@@ -312,13 +325,9 @@ class SubscriptionSerializer(UserSerializer):
             try:
                 recipes_limit = int(request.GET["recipes_limit"])
                 if recipes_limit < 0:
-                    raise ValidationError(
-                        "recipes_limit не может быть отрицательным."
-                    )
+                    raise ValidationError("recipes_limit не может быть отрицательным.")
             except (ValueError, TypeError):
-                raise ValidationError(
-                    "recipes_limit должен быть целым числом."
-                )
+                raise ValidationError("recipes_limit должен быть целым числом.")
 
         if recipes_limit is not None:
             author_recipes = author_recipes[:recipes_limit]
@@ -330,17 +339,16 @@ class SubscriptionSerializer(UserSerializer):
                 many=True,
             )
             return serializer.data
-
         return []
 
     def to_representation(self, instance):
-        """Добавляем recipes_count, если он был аннотирован в queryset."""
         data = super().to_representation(instance)
         data["recipes_count"] = getattr(instance, "recipes_count", 0)
         return data
 
 
 class AvatarSerializer(serializers.ModelSerializer):
+    """Сериализатор для аватара."""
 
     avatar = Base64ImageField(
         required=True,
@@ -348,21 +356,12 @@ class AvatarSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-
         model = Profile
-
-        fields = ('avatar',)
+        fields = ("avatar",)
 
     def update(self, instance, validated_data):
-
-        # Удаляем старый аватар если он есть
-
         if instance.avatar:
-
             instance.avatar.delete()
-
-        instance.avatar = validated_data['avatar']
-
+        instance.avatar = validated_data["avatar"]
         instance.save()
-
         return instance

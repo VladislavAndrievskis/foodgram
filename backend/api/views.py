@@ -18,10 +18,11 @@ from .serializers import (
     IngredientSerializer,
     RecipeCreateUpdateSerializer,
     RecipeSerializer,
-    ShortRecipeSerializer,
     TagSerializer,
     SubscriptionSerializer,
     AvatarSerializer,
+    FavoriteSerializer,
+    ShoppingCartSerializer,
 )
 from recipes.filters import RecipeFilter
 from .pagination import PageNumberPagination
@@ -67,11 +68,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeCreateUpdateSerializer
         return RecipeSerializer
 
-    def _create_relation(user, recipe, model, serializer_class):
-        """Создаёт связь (избранное / корзина), используя сериализатор."""
+    def _create_relation(self, request, recipe, model, serializer_class):
+        """Создаёт связь (избранное / корзина)."""
         serializer = serializer_class(
-            data={"user": user.id, "recipe": recipe.id},
-            context={"request": request},  # type: ignore  # noqa: F821
+            data={"user": request.user.id, "recipe": recipe.id},
+            context={"request": request},
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -85,17 +86,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
             raise exceptions.ValidationError("Рецепт не найден в списке.")
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(
-        detail=True, methods=("post",), permission_classes=(IsAuthenticated,)
-    )
-    @action(
-        detail=True, methods=("post",), permission_classes=(IsAuthenticated,)
-    )
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):
+        """Добавить рецепт в избранное."""
         recipe = get_object_or_404(Recipe, pk=pk)
-        return self._create_relation(
-            request, recipe, Favorite, ShortRecipeSerializer
-        )
+        return self._create_relation(request, recipe, Favorite, FavoriteSerializer)
 
     @favorite.mapping.delete
     def delete_favorite(self, request, pk=None):
@@ -104,17 +99,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, pk=pk)
         return self._delete_relation(user, recipe, Favorite)
 
-    @action(
-        detail=True, methods=("post",), permission_classes=(IsAuthenticated,)
-    )
-    @action(
-        detail=True, methods=("post",), permission_classes=(IsAuthenticated,)
-    )
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, pk=None):
+        """Добавить рецепт в список покупок."""
         recipe = get_object_or_404(Recipe, pk=pk)
-        return self._create_relation(
-            request, recipe, ShoppingCart, ShortRecipeSerializer
-        )
+        return self._create_relation(request, recipe, ShoppingCart, ShoppingCartSerializer)
 
     @shopping_cart.mapping.delete
     def delete_shopping_cart(self, request, pk=None):
@@ -123,9 +112,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, pk=pk)
         return self._delete_relation(user, recipe, ShoppingCart)
 
-    @action(
-        detail=False, methods=("get",), permission_classes=(IsAuthenticated,)
-    )
+    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def download_shopping_cart(self, request):
         """Скачать список покупок в формате .txt."""
         ingredients = (
@@ -147,9 +134,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
 
         response = HttpResponse(buy_list_text, content_type="text/plain")
-        response["Content-Disposition"] = (
-            'attachment; filename="shopping-list.txt"'
-        )
+        response["Content-Disposition"] = 'attachment; filename="shopping-list.txt"'
         return response
 
 
@@ -201,10 +186,13 @@ class UserViewSet(DjoserUserViewSet):
 
 
 class UserAvatarView(APIView):
+    """API для управления аватаром пользователя."""
+
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [JSONParser, FormParser]
 
     def put(self, request):
+        """Загрузить или обновить аватар."""
         user = request.user
         profile, created = Profile.objects.get_or_create(user=user)
         serializer = AvatarSerializer(profile, data=request.data, partial=True)
@@ -214,6 +202,7 @@ class UserAvatarView(APIView):
         return Response({"avatar": avatar_url}, status=status.HTTP_200_OK)
 
     def delete(self, request):
+        """Удалить аватар."""
         try:
             profile = Profile.objects.get(user=request.user)
         except Profile.DoesNotExist:
