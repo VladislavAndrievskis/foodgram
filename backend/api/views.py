@@ -86,11 +86,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
             raise exceptions.ValidationError("Рецепт не найден в списке.")
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    @action(
+        detail=True, methods=["post"], permission_classes=[IsAuthenticated]
+    )
     def favorite(self, request, pk=None):
         """Добавить рецепт в избранное."""
         recipe = get_object_or_404(Recipe, pk=pk)
-        return self._create_relation(request, recipe, Favorite, FavoriteSerializer)
+        return self._create_relation(
+            request, recipe, Favorite, FavoriteSerializer
+        )
 
     @favorite.mapping.delete
     def delete_favorite(self, request, pk=None):
@@ -99,11 +103,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, pk=pk)
         return self._delete_relation(user, recipe, Favorite)
 
-    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated])
+    @action(
+        detail=True, methods=["post"], permission_classes=[IsAuthenticated]
+    )
     def shopping_cart(self, request, pk=None):
         """Добавить рецепт в список покупок."""
         recipe = get_object_or_404(Recipe, pk=pk)
-        return self._create_relation(request, recipe, ShoppingCart, ShoppingCartSerializer)
+        return self._create_relation(
+            request, recipe, ShoppingCart, ShoppingCartSerializer
+        )
 
     @shopping_cart.mapping.delete
     def delete_shopping_cart(self, request, pk=None):
@@ -112,7 +120,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, pk=pk)
         return self._delete_relation(user, recipe, ShoppingCart)
 
-    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
+    @action(
+        detail=False, methods=["get"], permission_classes=[IsAuthenticated]
+    )
     def download_shopping_cart(self, request):
         """Скачать список покупок в формате .txt."""
         ingredients = (
@@ -134,7 +144,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
 
         response = HttpResponse(buy_list_text, content_type="text/plain")
-        response["Content-Disposition"] = 'attachment; filename="shopping-list.txt"'
+        response["Content-Disposition"] = (
+            'attachment; filename="shopping-list.txt"'
+        )
         return response
 
 

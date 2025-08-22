@@ -10,7 +10,7 @@ from api.views import (
     RecipeViewSet,
     TagViewSet,
     UserViewSet,
-    UserAvatarView
+    UserAvatarView,
 )
 
 router = DefaultRouter()

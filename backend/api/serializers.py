@@ -136,9 +136,7 @@ class RecipeSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
     tags = serializers.SerializerMethodField()
     ingredients = RecipeIngredientsSerializer(
-        source="ingredients_in_recipe",
-        many=True,
-        read_only=True
+        source="ingredients_in_recipe", many=True, read_only=True
     )
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
@@ -255,7 +253,9 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
 
         if ingredients_data is not None:
             instance.ingredients_in_recipe.all().delete()
-            self._create_ingredients_and_tags(instance, ingredients_data, tags_data)
+            self._create_ingredients_and_tags(
+                instance, ingredients_data, tags_data
+            )
 
         return instance
 
@@ -325,9 +325,13 @@ class SubscriptionSerializer(UserSerializer):
             try:
                 recipes_limit = int(request.GET["recipes_limit"])
                 if recipes_limit < 0:
-                    raise ValidationError("recipes_limit не может быть отрицательным.")
+                    raise ValidationError(
+                        "recipes_limit не может быть отрицательным."
+                    )
             except (ValueError, TypeError):
-                raise ValidationError("recipes_limit должен быть целым числом.")
+                raise ValidationError(
+                    "recipes_limit должен быть целым числом."
+                )
 
         if recipes_limit is not None:
             author_recipes = author_recipes[:recipes_limit]
