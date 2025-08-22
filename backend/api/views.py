@@ -88,7 +88,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
-        detail=True, methods=["post"], permission_classes=(IsAuthenticated,)
+        detail=True, methods=["post"], permission_classes=[IsAuthenticated]
     )
     def favorite(self, request, pk=None):
         """Добавить рецепт в избранное."""
@@ -105,7 +105,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return self._delete_relation(user, recipe, Favorite)
 
     @action(
-        detail=True, methods=["post"], permission_classes=(IsAuthenticated,)
+        detail=True, methods=["post"], permission_classes=[IsAuthenticated]
     )
     def shopping_cart(self, request, pk=None):
         """Добавить рецепт в список покупок."""
@@ -121,7 +121,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, pk=pk)
         return self._delete_relation(user, recipe, ShoppingCart)
 
-    @action(detail=False, methods="get", permission_classes=(IsAuthenticated,))
+    @action(detail=False, methods="get", permission_classes=[IsAuthenticated])
     def download_shopping_cart(self, request):
         """Скачать список покупок в формате .txt."""
         # Получаем ID рецептов из корзины пользователя
