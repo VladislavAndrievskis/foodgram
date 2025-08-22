@@ -122,14 +122,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return self._delete_relation(user, recipe, ShoppingCart)
 
     @action(
-    detail=False,
-    methods=["get"],
-    permission_classes=[IsAuthenticated],
-    url_path="download-shopping-cart"
-)
+        detail=False,
+        methods=["get"],
+        permission_classes=[IsAuthenticated],
+        url_path="download-shopping-cart",
+    )
     def download_shopping_cart(self, request):
         """Скачать список покупок в формате .txt."""
-        recipe_ids = request.user.shopping_cart.values_list("recipe_id", flat=True)
+        recipe_ids = request.user.shopping_cart.values_list(
+            "recipe_id", flat=True
+        )
 
         if not recipe_ids:
             return HttpResponse(
@@ -155,8 +157,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
         buy_list_text += "\n\nСпасибо, что используете Foodgram 🍲"
 
-        response = HttpResponse(buy_list_text, content_type="text/plain; charset=utf-8")
-        response["Content-Disposition"] = 'attachment; filename="shopping-list.txt"'
+        response = HttpResponse(
+            buy_list_text, content_type="text/plain; charset=utf-8"
+        )
+        response["Content-Disposition"] = (
+            'attachment; filename="shopping-list.txt"'
+        )
         return response
 
 
