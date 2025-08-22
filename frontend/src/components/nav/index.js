@@ -1,43 +1,50 @@
 import styles from './style.module.css'
+import { useEffect, useState } from 'react'
+import { AccountMenu, Orders, NavMenu, AccountMenuMobile, LinkComponent } from '../index.js'
 import cn from 'classnames'
-import { LinkComponent } from '../index'
-import navigation from '../../configs/navigation'
-import { UserMenu, NotLoggedInMenu } from '../../configs/navigation' // ✅ Импортируем дополнительные меню
+import { useLocation } from 'react-router-dom'
+import hamburgerImg from '../../images/hamburger-menu.png'
+import hamburgerImgClose from '../../images/hamburger-menu-close.png'
 
-const Nav = ({ loggedIn, orders }) => {
-  // ✅ Объединяем основное меню с нужным дополнительным
-  const navItems = loggedIn
-    ? [...navigation, ...UserMenu]        // Если вошёл — добавляем UserMenu
-    : [...navigation, ...NotLoggedInMenu] // Если не вошёл — добавляем NotLoggedInMenu
+const Nav = ({ loggedIn, onSignOut, orders }) => {
 
-  return (
-    <nav className={styles.nav}>
-      <div className={styles.nav__container}>
-        <ul className={styles.nav__items}>
-          {navItems.map(item => (
-            <li
-              className={cn(styles.nav__item, {
-                [styles.nav__item_active]: false,
-              })}
-              key={item.href}
-            >
-              <LinkComponent
-                title={item.title}
-                activeClassName={styles.nav__link_active}
-                href={item.href}
-                exact
-                className={styles.nav__link}
-              />
-              {/* Счётчик заказов только для корзины */}
-              {item.href === '/cart' && orders > 0 && (
-                <span className={styles['orders-count']}>{orders}</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </nav>
-  )
+  const [ menuToggled, setMenuToggled ] = useState(false)
+  const location = useLocation()
+
+  useEffect(() => {
+    const cb = () => {
+      setMenuToggled(false)
+    }
+    window.addEventListener('resize', cb)
+
+    return () => window.removeEventListener('resize', cb)
+  }, [])
+
+  useEffect(() => {
+    setMenuToggled(false)
+  }, [location.pathname])
+
+  return <div className={styles.nav}>
+    <LinkComponent href="/cart" className={styles.nav__orders} title={<Orders orders={orders} />} />
+
+    <div
+      className={styles.menuButton}
+      onClick={_ => setMenuToggled(!menuToggled)}
+    >
+      <img src={menuToggled ? hamburgerImgClose : hamburgerImg} />
+    </div>
+    <div className={styles.nav__container}>
+      <NavMenu loggedIn={loggedIn} />
+      <AccountMenu onSignOut={onSignOut} orders={orders} />
+    </div>
+
+    <div className={cn(styles['nav__container-mobile'], {
+      [styles['nav__container-mobile_visible']]: menuToggled
+    })}>
+      <NavMenu loggedIn={loggedIn} />
+      <AccountMenuMobile onSignOut={onSignOut} orders={orders} />
+    </div>
+  </div>
 }
 
 export default Nav

@@ -1,123 +1,54 @@
-import { Container, Main } from '../../components';
-import { Helmet } from 'react-helmet';
-import styles from './styles.module.css';
+import { Title, Container, Main } from '../../components'
+import styles from './styles.module.css'
+import MetaTags from 'react-meta-tags'
 
-const About = () => {
-    return (
-        <Main>
-            <Helmet>
-                <title>О проекте — Foodgram</title>
-                <meta
-                    name="description"
-                    content="Foodgram — платформа для публикации и поиска кулинарных рецептов."
-                />
-                <meta property="og:title" content="О проекте — Foodgram" />
-                <meta
-                    property="og:description"
-                    content="Узнайте, как работает платформа для рецептов Foodgram."
-                />
-            </Helmet>
+const About = ({ updateOrders, orders }) => {
 
-            <Container>
-                <h1 className={styles.title}>О проекте</h1>
-                <div className={styles.content}>
-                    <div className={styles.mainText}>
-                        <h2 className={styles.subtitle}>
-                            Что такое Foodgram?
-                        </h2>
-                        <p className={styles.textItem}>
-                            Foodgram — это онлайн-платформа, где пользователи
-                            могут
-                            <strong>
-                                {' '}
-                                публиковать, просматривать и сохранять
-                            </strong>
-                            кулинарные рецепты. Здесь легко найти вдохновение
-                            для ужина, составить список покупок и поделиться
-                            своими кулинарными находками с другими.
-                        </p>
-                        <p className={styles.textItem}>
-                            Этот проект был разработан в рамках учебного курса
-                            <a
-                                href="https://practicum.yandex.ru"
-                                className={styles.textLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                Яндекс Практикум
-                            </a>{' '}
-                            как часть финального задания. Всё, от дизайна до
-                            бэкенда и фронтенда — сделано с нуля.
-                        </p>
-                        <p className={styles.textItem}>
-                            <strong>Возможности сайта:</strong>
-                            <ul className={styles.list}>
-                                <li>
-                                    Публикация своих рецептов с фото и
-                                    пошаговыми инструкциями
-                                </li>
-                                <li>
-                                    Поиск рецептов по тегам (завтрак, обед,
-                                    ужин, десерт)
-                                </li>
-                                <li>Добавление рецептов в «Избранное»</li>
-                                <li>Подписка на любимых авторов</li>
-                                <li>
-                                    Автоматическая генерация списка покупок
-                                </li>
-                            </ul>
-                        </p>
-                        <p className={styles.textItem}>
-                            Для доступа ко всем функциям необходима{' '}
-                            <strong>регистрация</strong>. Подтверждение email
-                            не требуется — вы можете использовать любой адрес.
-                        </p>
-                    </div>
+  return <Main>
+    <MetaTags>
+      <title>О проекте</title>
+      <meta name="description" content="Фудграм - О проекте" />
+      <meta property="og:title" content="О проекте" />
+    </MetaTags>
 
-                    <aside className={styles.sidebar}>
-                        <h2 className={styles.additionalTitle}>
-                            Полезные ссылки
-                        </h2>
-                        <div className={styles.links}>
-                            <p className={styles.textItem}>
-                                📁 Исходный код проекта:
-                                <a
-                                    href="https://github.com/VladislavAndrievskis/foodgram"
-                                    className={styles.textLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    GitHub
-                                </a>
-                            </p>
-                            <p className={styles.textItem}>
-                                👨‍💻 Автор:
-                                <a
-                                    href="https://github.com/VladislavAndrievskis"
-                                    className={styles.textLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    Ваше Имя
-                                </a>
-                            </p>
-                            <p className={styles.textItem}>
-                                🎓 Курс:
-                                <a
-                                    href="https://practicum.yandex.ru"
-                                    className={styles.textLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    Яндекс Практикум — Веб-разработка
-                                </a>
-                            </p>
-                        </div>
-                    </aside>
-                </div>
-            </Container>
-        </Main>
-    );
-};
+    <Container>
+      <h1 className={styles.title}>Привет!</h1>
+      <div className={styles.content}>
+        <div>
+          <h2 className={styles.subtitle}>Что это за сайт?</h2>
+          <div className={styles.text}>
+            <p className={styles.textItem}>
+              Представляю вам проект, созданный во время обучения в Яндекс Практикуме. Этот проект — часть учебного курса, но он создан полностью самостоятельно.
+            </p>
+            <p className={styles.textItem}>
+              Цель этого сайта — дать возможность пользователям создавать и хранить рецепты на онлайн-платформе. Кроме того, можно скачать список продуктов, необходимых для
+              приготовления блюда, просмотреть рецепты друзей и добавить любимые рецепты в список избранных.
+            </p>
+            <p className={styles.textItem}>
+              Чтобы использовать все возможности сайта — нужна регистрация. Проверка адреса электронной почты не осуществляется, вы можете ввести любой email.
+            </p>
+            <p className={styles.textItem}>
+              Заходите и делитесь своими любимыми рецептами!
+            </p>
+          </div>
+        </div>
+        <aside>
+          <h2 className={styles.additionalTitle}>
+            Ссылки
+          </h2>
+          <div className={styles.text}>
+            <p className={styles.textItem}>
+              Код проекта находится тут - <a href="#" className={styles.textLink}>Github</a>
+            </p>
+            <p className={styles.textItem}>
+              Автор проекта: <a href="#" className={styles.textLink}>Имя Автора</a>
+            </p>
+          </div>
+        </aside>
+      </div>
 
-export default About;
+    </Container>
+  </Main>
+}
+
+export default About
