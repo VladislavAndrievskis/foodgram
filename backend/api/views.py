@@ -7,7 +7,7 @@ from django.db.models import F, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import exceptions, filters, permissions, status, viewsets
+from rest_framework import exceptions, filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import JSONParser, FormParser
 from rest_framework.permissions import IsAuthenticated
@@ -19,6 +19,7 @@ from .serializers import (
     RecipeCreateUpdateSerializer,
     RecipeSerializer,
     TagSerializer,
+    SubscribeSerializer,
     SubscriptionSerializer,
     AvatarSerializer,
     FavoriteSerializer,
@@ -87,7 +88,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
-        detail=True, methods=["post"], permission_classes=[IsAuthenticated]
+        detail=True, methods=["post"], permission_classes=(IsAuthenticated,)
     )
     def favorite(self, request, pk=None):
         """Добавить рецепт в избранное."""
@@ -104,7 +105,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return self._delete_relation(user, recipe, Favorite)
 
     @action(
-        detail=True, methods=["post"], permission_classes=[IsAuthenticated]
+        detail=True, methods=["post"], permission_classes=(IsAuthenticated,)
     )
     def shopping_cart(self, request, pk=None):
         """Добавить рецепт в список покупок."""
@@ -120,15 +121,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, pk=pk)
         return self._delete_relation(user, recipe, ShoppingCart)
 
-    @action(detail=False, methods="get", permission_classes=IsAuthenticated)
+    @action(detail=False, methods="get", permission_classes=(IsAuthenticated,))
     def download_shopping_cart(self, request):
-        """Скачать список покупок в формате.txt."""
+        """Скачать список покупок в формате .txt."""
         # Получаем ID рецептов из корзины пользователя
         recipe_ids = request.user.shopping_cart.values_list(
             "recipe_id", flat=True
         )
 
-        # Получаем все ингредиенты этих рецептов
+        # Если корзина пуста
+        if not recipe_ids:
+            return HttpResponse(
+                "Ваш список покупок пуст. Добавьте рецепты.",
+                content_type="text/plain; charset=utf-8",
+                status=400,
+            )
+
+        # Агрегируем ингредиенты
         ingredients = (
             RecipeIngredients.objects.filter(recipe__in=recipe_ids)
             .values(
@@ -139,14 +148,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             .order_by("name")
         )
 
-        # Если корзина пуста
-        if not ingredients:
-            return HttpResponse(
-                "Ваш список покупок пуст. Добавьте рецепты.",
-                content_type="text/plain; charset=utf-8",
-                status=400,
-            )
-
         # Формируем текст
         buy_list_text = "Список покупок с сайта Foodgram:\n\n"
         buy_list_text += "\n".join(
@@ -155,7 +156,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
         buy_list_text += "\n\nСпасибо, что используете Foodgram 🍲"
 
-        # Отправляем как файл
+        # Отправляем файл
         response = HttpResponse(
             buy_list_text, content_type="text/plain; charset=utf-8"
         )
@@ -189,13 +190,14 @@ class UserViewSet(DjoserUserViewSet):
     @action(
         detail=True,
         methods=["post"],
-        serializer_class=SubscriptionSerializer,
+        permission_classes=[IsAuthenticated],
+        # Убрали serializer_class — будем передавать вручную
     )
     def subscribe(self, request, id=None):
         """Подписаться на автора."""
         author = get_object_or_404(User, id=id)
-        serializer = self.get_serializer(
-            data={"user": request.user.id, "author": author.id}
+        serializer = SubscribeSerializer(
+            data={"author": author.id}, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -215,7 +217,7 @@ class UserViewSet(DjoserUserViewSet):
 class UserAvatarView(APIView):
     """API для управления аватаром пользователя."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = (IsAuthenticated,)
     parser_classes = [JSONParser, FormParser]
 
     def put(self, request):

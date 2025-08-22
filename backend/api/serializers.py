@@ -351,6 +351,32 @@ class SubscriptionSerializer(UserSerializer):
         return data
 
 
+class SubscribeSerializer(serializers.ModelSerializer):
+    """Сериализатор для создания подписки."""
+
+    class Meta:
+        model = Subscription
+        fields = ("user", "author")
+        read_only_fields = ("user",)
+
+    def validate(self, data):
+        user = self.context["request"].user
+        author = data["author"]
+
+        if user == author:
+            raise serializers.ValidationError("Нельзя подписаться на себя.")
+        if Subscription.objects.filter(user=user, author=author).exists():
+            raise serializers.ValidationError(
+                "Вы уже подписаны на этого пользователя."
+            )
+        return data
+
+    def to_representation(self, instance):
+        return SubscriptionSerializer(
+            instance.author, context={"request": self.context["request"]}
+        ).data
+
+
 class AvatarSerializer(serializers.ModelSerializer):
     """Сериализатор для аватара."""
 
