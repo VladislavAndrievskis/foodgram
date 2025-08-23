@@ -187,8 +187,12 @@ class UserViewSet(DjoserUserViewSet):
         authors_ids = user.subscriptions.values_list("author_id", flat=True)
         queryset = User.objects.filter(id__in=authors_ids)
         page = self.paginate_queryset(queryset)
-        serializer = self.get_serializer(page, many=True)
-        return self.get_paginated_response(serializer.data)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     @action(
         detail=True,
