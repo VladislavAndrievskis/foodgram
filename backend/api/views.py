@@ -88,8 +88,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     "favorite", filter=Q(favorite__user=user), distinct=True
                 ),
                 is_in_shopping_cart_user=Count(
-                    "shopping_cart",
-                    filter=Q(shopping_cart__user=user),
+                    "shoppingcart",
+                    filter=Q(shoppingcart__user=user),
                     distinct=True,
                 ),
             )
