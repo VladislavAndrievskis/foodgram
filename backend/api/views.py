@@ -10,7 +10,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import exceptions, filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import JSONParser, FormParser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -44,6 +44,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    permission_classes = (AllowAny,)
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -53,6 +54,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     filter_backends = (filters.SearchFilter,)
     search_fields = ("^name",)
+    permission_classes = (AllowAny,)
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -88,7 +90,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
-        detail=True, methods=["post"], permission_classes=[IsAuthenticated]
+        detail=True, methods=["post"], permission_classes=(IsAuthenticated,)
     )
     def favorite(self, request, pk=None):
         """Добавить рецепт в избранное."""
@@ -105,7 +107,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return self._delete_relation(user, recipe, Favorite)
 
     @action(
-        detail=True, methods=["post"], permission_classes=[IsAuthenticated]
+        detail=True, methods=["post"], permission_classes=(IsAuthenticated,)
     )
     def shopping_cart(self, request, pk=None):
         """Добавить рецепт в список покупок."""
@@ -124,7 +126,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["get"],
-        permission_classes=[IsAuthenticated],
+        permission_classes=(IsAuthenticated,),
         url_path="download_shopping_cart",
     )
     def download_shopping_cart(self, request):
@@ -190,7 +192,7 @@ class UserViewSet(DjoserUserViewSet):
     @action(
         detail=True,
         methods=["post"],
-        permission_classes=[IsAuthenticated],
+        permission_classes=(IsAuthenticated,)
         # Убрали serializer_class — будем передавать вручную
     )
     def subscribe(self, request, id=None):
