@@ -125,7 +125,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=["get"],
         permission_classes=[IsAuthenticated],
-        url_path="download-shopping-cart",
+        url_path="download_shopping_cart",
     )
     def download_shopping_cart(self, request):
         """Скачать список покупок в формате .txt."""
