@@ -22,10 +22,5 @@ router.register(r"users", UserViewSet, basename="users")
 urlpatterns = [
     path("", include(router.urls)),
     path("auth/", include("djoser.urls.authtoken")),
-    path(
-        'recipes/download_shopping_cart/',
-        RecipeViewSet,
-        name='download_shopping_cart',
-    ),
     path('users/me/avatar/', UserAvatarView.as_view(), name='user-avatar'),
 ]
