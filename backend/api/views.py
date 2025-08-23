@@ -179,6 +179,7 @@ class UserViewSet(DjoserUserViewSet):
         detail=False,
         methods=["get"],
         serializer_class=SubscriptionSerializer,
+        permission_classes=(IsAuthenticated,)
     )
     def subscriptions(self, request):
         """Список авторов, на которых подписан пользователь."""

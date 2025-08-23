@@ -3,7 +3,6 @@ from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.db.models import F, Q
 from django.forms import ValidationError
-from rest_framework.permissions import IsAuthenticated
 
 User = get_user_model()
 
@@ -16,7 +15,6 @@ class Subscription(models.Model):
         related_name="subscriptions",
         verbose_name="Подписчик",
         help_text="Пользователь, оформивший подписку",
-        permission_classes=[IsAuthenticated],
     )
 
     author = models.ForeignKey(
