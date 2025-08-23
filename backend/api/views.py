@@ -3,7 +3,7 @@
 """
 
 from djoser.views import UserViewSet as DjoserUserViewSet
-from django.db.models import F, Sum
+from django.db.models import Count, F, Sum, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -70,6 +70,31 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if self.action in ("create", "partial_update"):
             return RecipeCreateUpdateSerializer
         return RecipeSerializer
+
+    def get_queryset(self):
+        queryset = Recipe.objects.all()
+        user = self.request.user
+
+        if user.is_authenticated:
+            queryset = (
+                queryset.prefetch_related("ingredients_in_recipe__ingredient")
+                .select_related("author")
+                .prefetch_related("tags")
+            )
+
+            # Аннотируем is_favorited и is_in_shopping_cart
+            queryset = queryset.annotate(
+                is_favorited_user=Count(
+                    "favorite", filter=Q(favorite__user=user), distinct=True
+                ),
+                is_in_shopping_cart_user=Count(
+                    "shopping_cart",
+                    filter=Q(shopping_cart__user=user),
+                    distinct=True,
+                ),
+            )
+
+        return queryset
 
     def _create_relation(self, request, recipe, model, serializer_class):
         """Создаёт связь (избранное / корзина)."""
@@ -179,13 +204,14 @@ class UserViewSet(DjoserUserViewSet):
         detail=False,
         methods=["get"],
         serializer_class=SubscriptionSerializer,
-        permission_classes=(IsAuthenticated,)
+        permission_classes=(IsAuthenticated,),
     )
     def subscriptions(self, request):
-        """Список авторов, на которых подписан пользователь."""
         user = request.user
         authors_ids = user.subscriptions.values_list("author_id", flat=True)
-        queryset = User.objects.filter(id__in=authors_ids)
+        queryset = User.objects.filter(id__in=authors_ids).annotate(
+            recipes_count=Count("recipes")
+        )
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -197,7 +223,7 @@ class UserViewSet(DjoserUserViewSet):
     @action(
         detail=True,
         methods=["post"],
-        permission_classes=(IsAuthenticated,)
+        permission_classes=(IsAuthenticated,),
         # Убрали serializer_class — будем передавать вручную
     )
     def subscribe(self, request, id=None):

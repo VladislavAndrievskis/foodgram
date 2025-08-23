@@ -125,11 +125,17 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):
-    """Короткий сериализатор для избранного и корзины."""
+    image = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
         fields = ("id", "name", "image", "cooking_time")
+
+    def get_image(self, obj):
+        request = self.context.get("request")
+        if obj.image and hasattr(obj.image, "url"):
+            return request.build_absolute_uri(obj.image.url)
+        return None
 
 
 class RecipeSerializer(serializers.ModelSerializer):
@@ -379,8 +385,7 @@ class SubscribeSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         return SubscriptionSerializer(
-            instance.author,
-            context={"request": self.context["request"]}
+            instance.author, context={"request": self.context["request"]}
         ).data
 
 
