@@ -21,6 +21,7 @@ router.register(r"users", UserViewSet, basename="users")
 
 urlpatterns = [
     path("", include(router.urls)),
+    path("api/auth/", include("djoser.urls")),
     path("auth/", include("djoser.urls.authtoken")),
     path('users/me/avatar/', UserAvatarView.as_view(), name='user-avatar'),
 ]
