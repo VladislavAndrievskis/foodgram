@@ -172,17 +172,17 @@ class UserRecipeRelation(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="%(class)ss",
-        verbose_name="Пользователь",
+        related_name="%(class)ss"
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        verbose_name="Рецепт",
+        related_name="%(class)s"
     )
 
     class Meta:
         abstract = True
+        unique_together = ('user', 'recipe')
 
     def __str__(self):
         return f"{self.recipe} — {self.user}"
@@ -193,7 +193,7 @@ class Favorite(UserRecipeRelation):
     Избранное.
     """
 
-    class Meta:
+    class Meta(UserRecipeRelation.Meta):
         verbose_name = "избранное"
         verbose_name_plural = "Избранное"
         constraints = [
@@ -212,7 +212,7 @@ class ShoppingCart(UserRecipeRelation):
     Список покупок.
     """
 
-    class Meta:
+    class Meta(UserRecipeRelation.Meta):
         verbose_name = "список покупок"
         verbose_name_plural = "Список покупок"
         constraints = [

@@ -72,28 +72,28 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return RecipeSerializer
 
     def get_queryset(self):
-        queryset = Recipe.objects.all()
+        queryset = Recipe.objects.all().order_by("-pub_date")
         user = self.request.user
 
         if user.is_authenticated:
-            queryset = (
-                queryset.prefetch_related("ingredients_in_recipe__ingredient")
-                .select_related("author")
-                .prefetch_related("tags")
-            )
+            queryset = queryset.prefetch_related(
+                "ingredients_in_recipe__ingredient",
+                "tags",
+            ).select_related("author")
 
             queryset = queryset.annotate(
                 is_favorited_user=Count(
-                    "favorites",
-                    filter=Q(favorites__user=user),
+                    "favorite",  # ✅
+                    filter=Q(favorite__user=user),
                     distinct=True,
                 ),
                 is_in_shopping_cart_user=Count(
-                    "shoppingcarts",
-                    filter=Q(shoppingcarts__user=user),
+                    "shoppingcart",  # ✅
+                    filter=Q(shoppingcart__user=user),
                     distinct=True,
                 ),
             )
+
         return queryset
 
     def _create_relation(self, request, recipe, model, serializer_class):
