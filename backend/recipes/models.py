@@ -180,6 +180,8 @@ class UserRecipeRelation(models.Model):
         related_name="%(class)s"
     )
 
+    created = models.DateTimeField('Дата', auto_now_add=True)
+
     class Meta:
         abstract = True
         unique_together = ('user', 'recipe')
