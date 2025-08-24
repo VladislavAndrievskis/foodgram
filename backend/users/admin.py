@@ -9,11 +9,12 @@ from .models import Profile, Subscription
 
 User = get_user_model()
 
+
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
- list_display = ("username", "email", "first_name", "last_name", "is_staff")
- list_filter = ("is_staff", "is_superuser", "is_active", "groups")
- search_fields = ("username", "first_name", "last_name", "email")
+    list_display = ("username", "email", "first_name", "last_name", "is_staff")
+    list_filter = ("is_staff", "is_superuser", "is_active", "groups")
+    search_fields = ("username", "first_name", "last_name", "email")
 
 
 @admin.register(Subscription)
@@ -33,7 +34,12 @@ class ProfileAdmin(admin.ModelAdmin):
         "subscribers_count",
         "avatar_preview",
     )
-    search_fields = ("user__username", "user__first_name", "user__last_name", "user__email")
+    search_fields = (
+        "user__username",
+        "user__first_name",
+        "user__last_name",
+        "user__email",
+    )
     readonly_fields = ("avatar_preview",)
     fields = ("user", "avatar", "avatar_preview")
 
@@ -45,10 +51,7 @@ class ProfileAdmin(admin.ModelAdmin):
             .select_related("user")
             .annotate(
                 _recipes_count=Count("user__recipes", distinct=True),
-                _subscribers_count=Count(
-                    "user__subscribers",
-                    distinct=True
-                ),
+                _subscribers_count=Count("user__subscribers", distinct=True),
             )
         )
 

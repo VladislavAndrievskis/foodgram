@@ -40,8 +40,10 @@ class RecipeAdmin(admin.ModelAdmin):
     favorites_count_display.admin_order_field = "favorites_count"
 
     def get_queryset(self, request):
-        return super().get_queryset(request).annotate(
-            favorites_count=models.Count("favorite", distinct=True)
+        return (
+            super()
+            .get_queryset(request)
+            .annotate(favorites_count=models.Count("favorite", distinct=True))
         )
 
 
@@ -76,13 +78,13 @@ class IngredientAdmin(admin.ModelAdmin):
 
 @admin.register(Favorite)
 class FavoriteAdmin(admin.ModelAdmin):
- list_display = ("user", "recipe", "created")
- list_select_related = ("user", "recipe")
- search_fields = ("user__username", "recipe__name")
+    list_display = ("user", "recipe", "created")
+    list_select_related = ("user", "recipe")
+    search_fields = ("user__username", "recipe__name")
 
 
 @admin.register(ShoppingCart)
 class ShoppingCartAdmin(admin.ModelAdmin):
- list_display = ("user", "recipe", "created")
- list_select_related = ("user", "recipe")
- search_fields = ("user__username", "recipe__name")
+    list_display = ("user", "recipe", "created")
+    list_select_related = ("user", "recipe")
+    search_fields = ("user__username", "recipe__name")
