@@ -5,7 +5,7 @@
 from django.contrib import admin
 from django.db import models
 
-from .models import Recipe, Tag, Ingredient
+from .models import Recipe, Tag, Ingredient, ShoppingCart, Favorite
 
 
 class RecipeIngredientInline(admin.TabularInline):
@@ -66,9 +66,23 @@ class IngredientAdmin(admin.ModelAdmin):
         "measurement_unit",
     )
     list_display_links = ("id", "name")  # Кликабельные для редактирования
-    search_fields = ("name", "measurement_unit")
+    search_fields = ("name",)
     list_filter = ("name", "measurement_unit")
     ordering = ("name",)
     save_on_top = True
     verbose_name = "Ингредиент"
     verbose_name_plural = "Ингредиенты"
+
+
+@admin.register(Favorite)
+class FavoriteAdmin(admin.ModelAdmin):
+ list_display = ("user", "recipe", "created")
+ list_select_related = ("user", "recipe")
+ search_fields = ("user__username", "recipe__name")
+
+
+@admin.register(ShoppingCart)
+class ShoppingCartAdmin(admin.ModelAdmin):
+ list_display = ("user", "recipe", "created")
+ list_select_related = ("user", "recipe")
+ search_fields = ("user__username", "recipe__name")
