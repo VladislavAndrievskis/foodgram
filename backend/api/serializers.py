@@ -140,7 +140,7 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
 
 class RecipeSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
-    tags = serializers.SerializerMethodField()
+    tags = TagSerializer(many=True, read_only=True)
     ingredients = RecipeIngredientsSerializer(
         source="ingredients_in_recipe", many=True, read_only=True
     )
@@ -151,29 +151,11 @@ class RecipeSerializer(serializers.ModelSerializer):
         model = Recipe
         exclude = ("pub_date",)
 
-    def get_tags(self, obj):
-        request = self.context.get("request")
-        if request and request.method in ("PUT", "PATCH", "POST"):
-            return obj.tags.values_list("id", flat=True)
-        return TagSerializer(obj.tags.all(), many=True).data
-
     def get_is_favorited(self, obj):
-        request = self.context.get("request")
-        if not request or request.user.is_anonymous:
-            return False
-        try:
-            return request.user.favorite.filter(recipe=obj).exists()
-        except Exception:
-            return False
+        return bool(getattr(obj, "is_favorited_user", False))
 
     def get_is_in_shopping_cart(self, obj):
-        request = self.context.get("request")
-        if not request or request.user.is_anonymous:
-            return False
-        try:
-            return request.user.shopping_cart.filter(recipe=obj).exists()
-        except Exception:
-            return False
+        return bool(getattr(obj, "is_in_shopping_cart_user", False))
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -277,7 +259,6 @@ class UserRecipeRelationSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserRecipeRelation
         fields = ("user", "recipe")
-        # abstract не нужно указывать здесь
 
     def validate(self, data):
         user = data["user"]

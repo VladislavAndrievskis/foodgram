@@ -82,18 +82,18 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 .prefetch_related("tags")
             )
 
-            # Аннотируем is_favorited и is_in_shopping_cart
             queryset = queryset.annotate(
                 is_favorited_user=Count(
-                    "favorite", filter=Q(favorite__user=user), distinct=True
+                    "favorites",
+                    filter=Q(favorites__user=user),
+                    distinct=True,
                 ),
                 is_in_shopping_cart_user=Count(
-                    "shoppingcart",
-                    filter=Q(shoppingcart__user=user),
+                    "shoppingcarts",
+                    filter=Q(shoppingcarts__user=user),
                     distinct=True,
                 ),
             )
-
         return queryset
 
     def _create_relation(self, request, recipe, model, serializer_class):
@@ -151,12 +151,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["get"],
-        permission_classes=(IsAuthenticated,),
+        permission_classes=[IsAuthenticated],
         url_path="download_shopping_cart",
     )
     def download_shopping_cart(self, request):
         """Скачать список покупок в формате .txt."""
-        recipe_ids = request.user.shopping_cart.values_list(
+        recipe_ids = request.user.shoppingcarts.values_list(
             "recipe_id", flat=True
         )
 
@@ -177,16 +177,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
             .order_by("name")
         )
 
-        buy_list_text = "Список покупок с сайта Foodgram:\n\n"
-        buy_list_text += "\n".join(
+        # Генерируем текст
+        text = "Список покупок:\n\n"
+        text += "\n".join(
             f"{item['name']} — {item['amount']} {item['measurement_unit']}"
             for item in ingredients
         )
-        buy_list_text += "\n\nСпасибо, что используете Foodgram 🍲"
+        text += "\n\nСпасибо, что используете Foodgram 🍲"
 
-        response = HttpResponse(
-            buy_list_text, content_type="text/plain; charset=utf-8"
-        )
+        response = HttpResponse(text, content_type="text/plain; charset=utf-8")
         response["Content-Disposition"] = (
             'attachment; filename="shopping-list.txt"'
         )
@@ -224,7 +223,6 @@ class UserViewSet(DjoserUserViewSet):
         detail=True,
         methods=["post"],
         permission_classes=(IsAuthenticated,),
-        # Убрали serializer_class — будем передавать вручную
     )
     def subscribe(self, request, id=None):
         """Подписаться на автора."""
