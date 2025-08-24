@@ -341,6 +341,14 @@ class SubscriptionSerializer(UserSerializer):
 class SubscribeSerializer(serializers.ModelSerializer):
     """Сериализатор для создания подписки."""
 
+    author = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all()
+    )
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        read_only=True
+    )
+
     class Meta:
         model = Subscription
         fields = ("user", "author")
@@ -348,7 +356,7 @@ class SubscribeSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         user = self.context["request"].user
-        author = data["author"]
+        author = data["author"]  # ← теперь это объект User
 
         if user == author:
             raise serializers.ValidationError("Нельзя подписаться на себя.")
@@ -365,8 +373,10 @@ class SubscribeSerializer(serializers.ModelSerializer):
         return subscription
 
     def to_representation(self, instance):
+        # instance — это Subscription
+        request = self.context["request"]
         return SubscriptionSerializer(
-            instance.author, context={"request": self.context["request"]}
+            instance.author, context={"request": request}
         ).data
 
 
