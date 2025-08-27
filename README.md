@@ -3,7 +3,7 @@
 ---
 ## Описание <a id=1></a>
 
-Проект развернут на сайте https://andrievskis.sytes.net
+Проект развернут на сайтах https://andrievskis.sytes.net и https://89.169.181.37
 Админка:
 admin
 admin

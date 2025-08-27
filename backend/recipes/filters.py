@@ -26,8 +26,8 @@ class RecipeFilter(filters.FilterSet):
         if self.request.user.is_anonymous:
             return queryset.none()
         if value == "1":
-            return queryset.filter(favorites__user=self.request.user)
-        return queryset.exclude(favorites__user=self.request.user)
+            return queryset.filter(favorite__user=self.request.user)
+        return queryset.exclude(favorite__user=self.request.user)
 
     def filter_is_in_shopping_cart(self, queryset, name, value):
         if self.request.user.is_anonymous:
