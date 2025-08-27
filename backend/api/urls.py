@@ -10,14 +10,14 @@ from api.views import (
     UserViewSet,
 )
 
+# Роутер — только для наших моделей
 router = DefaultRouter()
 router.register(r"ingredients", IngredientViewSet, basename="ingredients")
 router.register(r"recipes", RecipeViewSet, basename="recipes")
 router.register(r"tags", TagViewSet, basename="tags")
 
-urlpatterns = [
-    path("", include(router.urls)),
-    # Подключаем UserViewSet вручную, чтобы работали кастомные экшены
+# Кастомные пути для UserViewSet
+user_urlpatterns = [
     path("users/", UserViewSet.as_view({"get": "list"}), name="user-list"),
     path(
         "users/<int:id>/",
@@ -41,4 +41,10 @@ urlpatterns = [
         ),
         name="user-avatar",
     ),
+]
+
+urlpatterns = [
+    path("", include(router.urls)),
+    path("", include(user_urlpatterns)),
+    path("auth/", include("djoser.urls")),
 ]
