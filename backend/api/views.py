@@ -153,9 +153,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def download_shopping_cart(self, request):
         """Скачать список покупок в формате .txt."""
-        recipe_ids = request.user.shoppingcarts.values_list(
+        recipe_ids = request.user.shoppingcart.values_list(
             "recipe_id", flat=True
-        )
+            )
+
 
         if not recipe_ids:
             return HttpResponse(
