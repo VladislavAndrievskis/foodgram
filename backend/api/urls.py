@@ -46,6 +46,6 @@ user_urlpatterns = [
 
 urlpatterns = [
     path("", include(router.urls)),
-    path("", include(user_urlpatterns)),
+    path("api/", include(user_urlpatterns)),
     path("auth/", include("djoser.urls.authtoken")),
 ]

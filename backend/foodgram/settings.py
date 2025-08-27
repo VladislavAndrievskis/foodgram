@@ -153,5 +153,16 @@ DJOSER = {
         "user_delete": ["djoser.permissions.CurrentUserOrAdmin"],
     },
 }
-CORS_ORIGIN_ALLOW_ALL = True
+
+CORS_ALLOWED_ORIGINS = [
+    "https://andrievskis.sytes.net",
+]
+
+CORS_ORIGIN_ALLOW_ALL = False
 CORS_URLS_REGEX = r"^/api/.*$"
+
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://andrievskis.sytes.net",
+]
