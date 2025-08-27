@@ -235,6 +235,7 @@ class UserViewSet(DjoserUserViewSet):
         methods=["get", "put", "delete"],
         permission_classes=[IsAuthenticated],
         parser_classes=[JSONParser, FormParser],
+        url_path="me/avatar",
     )
     def avatar(self, request):
         """GET — получить, PUT — обновить, DELETE — удалить аватар."""
