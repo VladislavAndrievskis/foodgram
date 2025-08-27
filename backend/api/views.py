@@ -184,6 +184,8 @@ class UserViewSet(DjoserUserViewSet):
     Добавлены: /subscriptions/, /subscribe/, /avatar/.
     """
 
+    lookup_field = "id"
+
     @action(
         detail=False,
         methods=["get"],
