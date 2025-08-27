@@ -222,13 +222,12 @@ class UserViewSet(DjoserUserViewSet):
         permission_classes=(IsAuthenticated,),
     )
     def subscribe(self, request, id=None):
-        """Подписаться на автора."""
         author = get_object_or_404(User, id=id)
         serializer = SubscribeSerializer(
             data={"author": author.id}, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save(user=request.user)
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @subscribe.mapping.delete
@@ -242,20 +241,23 @@ class UserViewSet(DjoserUserViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
-        detail=False,
-        methods=["put", "delete"],
-        permission_classes=[IsAuthenticated],
-        parser_classes=[JSONParser, FormParser],
+    detail=False,
+    methods=["get", "put", "delete"],  # ← добавили "get"
+    permission_classes=[IsAuthenticated],
+    parser_classes=[JSONParser, FormParser],
     )
     def avatar(self, request):
-        """Загрузить или удалить аватар пользователя."""
         user = request.user
         profile, created = Profile.objects.get_or_create(user=user)
 
-        if request.method == "PUT":
-            serializer = AvatarSerializer(
-                profile, data=request.data, partial=True
-            )
+        if request.method == "GET":
+            if profile.avatar:
+                avatar_url = request.build_absolute_uri(profile.avatar.url)
+                return Response({"avatar": avatar_url}, status=status.HTTP_200_OK)
+            return Response({"avatar": None}, status=status.HTTP_200_OK)
+
+        elif request.method == "PUT":
+            serializer = AvatarSerializer(profile, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save()
             avatar_url = request.build_absolute_uri(profile.avatar.url)
