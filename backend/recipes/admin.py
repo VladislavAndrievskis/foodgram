@@ -1,7 +1,3 @@
-"""
-Админка: рецепты с ингредиентами и тегами.
-"""
-
 from django.contrib import admin
 from django.db import models
 
@@ -10,7 +6,6 @@ from .models import Recipe, Tag, Ingredient, ShoppingCart, Favorite
 
 class RecipeIngredientInline(admin.TabularInline):
     """Инлайн для ингредиентов в рецепте."""
-
     model = Recipe.ingredients.through
     extra = 1
     min_num = 1
@@ -33,11 +28,9 @@ class RecipeAdmin(admin.ModelAdmin):
     inlines = (RecipeIngredientInline,)
     readonly_fields = ("favorites_count_display",)
 
+    @admin.display(description="В избранном", ordering="favorites_count")
     def favorites_count_display(self, obj):
         return obj.favorites_count
-
-    favorites_count_display.short_description = "В избранном"
-    favorites_count_display.admin_order_field = "favorites_count"
 
     def get_queryset(self, request):
         return (
@@ -50,7 +43,6 @@ class RecipeAdmin(admin.ModelAdmin):
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
     """Админ-панель для тегов."""
-
     list_display = ("id", "name", "slug")
     list_display_links = ("id", "name")
     search_fields = ("name", "slug")
@@ -60,14 +52,8 @@ class TagAdmin(admin.ModelAdmin):
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
     """Админ-панель для управления ингредиентами."""
-
-    # Поля, отображаемые в списке
-    list_display = (
-        "id",
-        "name",
-        "measurement_unit",
-    )
-    list_display_links = ("id", "name")  # Кликабельные для редактирования
+    list_display = ("id", "name", "measurement_unit")
+    list_display_links = ("id", "name")
     search_fields = ("name",)
     list_filter = ("name", "measurement_unit")
     ordering = ("name",)

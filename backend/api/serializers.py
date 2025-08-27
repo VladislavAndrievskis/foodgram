@@ -16,6 +16,7 @@ from recipes.models import (
     Favorite,
     ShoppingCart,
 )
+from .constants import MIN_AMOUNT, MIN_COOKING_TIME
 from users.models import User, Subscription, Profile
 
 
@@ -62,7 +63,7 @@ class CreateUpdateRecipeIngredientsSerializer(serializers.ModelSerializer):
     amount = serializers.IntegerField(
         validators=[
             MinValueValidator(
-                1, "Количество ингредиента должно быть 1 или более."
+                MIN_AMOUNT, f"Количество ингредиента должно быть {MIN_AMOUNT} или более."
             )
         ],
         write_only=True,
@@ -93,9 +94,10 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_is_subscribed(self, obj):
         user = self.context.get("request").user
-        if not user or user.is_anonymous:
-            return False
-        return Subscription.objects.filter(user=user, author=obj).exists()
+        return (
+            not user.is_anonymous
+            and Subscription.objects.filter(user=user, author=obj).exists()
+        )
 
     def get_avatar(self, obj):
         request = self.context.get("request")
@@ -144,18 +146,16 @@ class RecipeSerializer(serializers.ModelSerializer):
     ingredients = RecipeIngredientsSerializer(
         source="ingredients_in_recipe", many=True, read_only=True
     )
-    is_favorited = serializers.SerializerMethodField()
-    is_in_shopping_cart = serializers.SerializerMethodField()
+    is_favorited = serializers.BooleanField(
+        source="is_favorited_user", read_only=True, default=False
+    )
+    is_in_shopping_cart = serializers.BooleanField(
+        source="is_in_shopping_cart_user", read_only=True, default=False
+    )
 
     class Meta:
         model = Recipe
         exclude = ("pub_date",)
-
-    def get_is_favorited(self, obj):
-        return bool(getattr(obj, "is_favorited_user", False))
-
-    def get_is_in_shopping_cart(self, obj):
-        return bool(getattr(obj, "is_in_shopping_cart_user", False))
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -176,7 +176,8 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
     cooking_time = serializers.IntegerField(
         validators=[
             MinValueValidator(
-                1, message="Время приготовления должно быть не менее 1 минуты."
+                MIN_COOKING_TIME,
+                f"Время приготовления должно быть не менее {MIN_COOKING_TIME} минуты."
             )
         ]
     )
@@ -185,20 +186,23 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         model = Recipe
         exclude = ("pub_date",)
 
-    def validate_tags(self, value):
-        if not value:
-            raise ValidationError("Нужно добавить хотя бы один тег.")
-        return value
+    def validate(self, data):
+        """Общая валидация — чтобы работала при частичном обновлении."""
+        tags = data.get("tags")
+        ingredients = data.get("ingredients")
 
-    def validate_ingredients(self, value):
-        if not value:
+        if not tags:
+            raise ValidationError("Нужно добавить хотя бы один тег.")
+        if len(set(tags)) != len(tags):
+            raise ValidationError("У рецепта не может быть два одинаковых тега.")
+
+        if not ingredients:
             raise ValidationError("Нужно добавить хотя бы один ингредиент.")
-        ingredient_ids = [item["id"].id for item in value]
+        ingredient_ids = [item["id"].id for item in ingredients]
         if len(set(ingredient_ids)) != len(ingredient_ids):
-            raise ValidationError(
-                "У рецепта не может быть два одинаковых ингредиента."
-            )
-        return value
+            raise ValidationError("У рецепта не может быть два одинаковых ингредиента.")
+
+        return data
 
     @staticmethod
     def _create_ingredients_and_tags(recipe, ingredients_data, tags_data):
@@ -232,18 +236,15 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         ingredients_data = validated_data.pop("ingredients", None)
         tags_data = validated_data.pop("tags", None)
 
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
+        # Используем родительский update для полей модели
+        instance = super().update(instance, validated_data)
 
         if tags_data is not None:
             instance.tags.set(tags_data)
 
         if ingredients_data is not None:
             instance.ingredients_in_recipe.all().delete()
-            self._create_ingredients_and_tags(
-                instance, ingredients_data, tags_data
-            )
+            self._create_ingredients_and_tags(instance, ingredients_data, tags_data)
 
         return instance
 
@@ -251,7 +252,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return RecipeSerializer(
             instance, context={"request": self.context.get("request")}
         ).data
-
 
 class UserRecipeRelationSerializer(serializers.ModelSerializer):
     """Базовый сериализатор для связей пользователь-рецепт."""
@@ -354,16 +354,8 @@ class SubscribeSerializer(serializers.ModelSerializer):
         if user == author:
             raise serializers.ValidationError("Нельзя подписаться на себя.")
         if Subscription.objects.filter(user=user, author=author).exists():
-            raise serializers.ValidationError("Вы уже подписаны на чела.")
+            raise serializers.ValidationError("Вы уже подписаны на этого пользователя.")
         return data
-
-    def save(self, **kwargs):
-        user = self.context["request"].user
-        author = self.validated_data["author"]
-        subscription, created = Subscription.objects.get_or_create(
-            user=user, author=author
-        )
-        return subscription
 
     def to_representation(self, instance):
         request = self.context["request"]

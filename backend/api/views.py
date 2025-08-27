@@ -1,6 +1,4 @@
-"""
-Вьюсеты API: рецепты, теги, ингредиенты, пользователи.
-"""
+"""Вьюсеты API: рецепты, теги, ингредиенты, пользователи."""
 
 from djoser.views import UserViewSet as DjoserUserViewSet
 from django.db.models import Count, F, Sum, Q
@@ -12,7 +10,6 @@ from rest_framework.decorators import action
 from rest_framework.parsers import JSONParser, FormParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from .serializers import (
     IngredientSerializer,
@@ -72,25 +69,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return RecipeSerializer
 
     def get_queryset(self):
-        queryset = Recipe.objects.all().order_by("-pub_date")
+        queryset = Recipe.objects.select_related("author").prefetch_related(
+            "ingredients_in_recipe__ingredient",
+            "tags",
+        ).order_by("-pub_date")
+
         user = self.request.user
-
         if user.is_authenticated:
-            queryset = queryset.prefetch_related(
-                "ingredients_in_recipe__ingredient",
-                "tags",
-            ).select_related("author")
-
             queryset = queryset.annotate(
                 is_favorited_user=Count(
-                    "favorite",  # ✅
-                    filter=Q(favorite__user=user),
-                    distinct=True,
+                    "favorite", filter=Q(favorite__user=user), distinct=True
                 ),
                 is_in_shopping_cart_user=Count(
-                    "shoppingcart",  # ✅
-                    filter=Q(shoppingcart__user=user),
-                    distinct=True,
+                    "shoppingcart", filter=Q(shoppingcart__user=user), distinct=True
                 ),
             )
 
@@ -183,7 +174,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             f"{item['name']} — {item['amount']} {item['measurement_unit']}"
             for item in ingredients
         )
-        text += "\n\nСпасибо, что используете Foodgram 🍲"
+        text += "\n\nСпасибо, что используете Foodgram"
 
         response = HttpResponse(text, content_type="text/plain; charset=utf-8")
         response["Content-Disposition"] = (
@@ -244,31 +235,29 @@ class UserViewSet(DjoserUserViewSet):
         subscription.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-
-class UserAvatarView(APIView):
-    """API для управления аватаром пользователя."""
-
-    permission_classes = (IsAuthenticated,)
-    parser_classes = [JSONParser, FormParser]
-
-    def put(self, request):
-        """Загрузить или обновить аватар."""
+    @action(
+    detail=False,
+    methods=["put", "delete"],
+    permission_classes=[IsAuthenticated],
+    parser_classes=[JSONParser, FormParser],
+    )
+    def avatar(self, request):
+        """Загрузить или удалить аватар пользователя."""
         user = request.user
         profile, created = Profile.objects.get_or_create(user=user)
-        serializer = AvatarSerializer(profile, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        avatar_url = request.build_absolute_uri(profile.avatar.url)
-        return Response({"avatar": avatar_url}, status=status.HTTP_200_OK)
 
-    def delete(self, request):
-        """Удалить аватар."""
-        try:
-            profile = Profile.objects.get(user=request.user)
-        except Profile.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        if profile.avatar:
-            profile.avatar.delete(save=True)
-            profile.avatar = None
-            profile.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        if request.method == "PUT":
+            serializer = AvatarSerializer(profile, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            avatar_url = request.build_absolute_uri(profile.avatar.url)
+            return Response({"avatar": avatar_url}, status=status.HTTP_200_OK)
+
+        elif request.method == "DELETE":
+            if profile.avatar:
+                profile.avatar.delete(save=True)
+                profile.avatar = None
+                profile.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
