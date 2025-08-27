@@ -186,6 +186,12 @@ class UserViewSet(DjoserUserViewSet):
 
     lookup_field = "id"
 
+    def retrieve(self, request, *args, **kwargs):
+        """Получение пользователя по ID."""
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
     @action(
         detail=False,
         methods=["get"],
