@@ -241,10 +241,10 @@ class UserViewSet(DjoserUserViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
-    detail=False,
-    methods=["get", "put", "delete"],  # ← добавили "get"
-    permission_classes=[IsAuthenticated],
-    parser_classes=[JSONParser, FormParser],
+        detail=False,
+        methods=["get", "put", "delete"],  # ← добавили "get"
+        permission_classes=[IsAuthenticated],
+        parser_classes=[JSONParser, FormParser],
     )
     def avatar(self, request):
         user = request.user
@@ -253,11 +253,15 @@ class UserViewSet(DjoserUserViewSet):
         if request.method == "GET":
             if profile.avatar:
                 avatar_url = request.build_absolute_uri(profile.avatar.url)
-                return Response({"avatar": avatar_url}, status=status.HTTP_200_OK)
+                return Response(
+                    {"avatar": avatar_url}, status=status.HTTP_200_OK
+                )
             return Response({"avatar": None}, status=status.HTTP_200_OK)
 
         elif request.method == "PUT":
-            serializer = AvatarSerializer(profile, data=request.data, partial=True)
+            serializer = AvatarSerializer(
+                profile, data=request.data, partial=True
+            )
             serializer.is_valid(raise_exception=True)
             serializer.save()
             avatar_url = request.build_absolute_uri(profile.avatar.url)

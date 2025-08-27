@@ -1,6 +1,4 @@
-"""
-Сериализаторы API: теги, ингредиенты, рецепты, пользователи.
-"""
+"""Сериализаторы API: теги, ингредиенты, рецепты, пользователи."""
 
 from django.core.exceptions import ValidationError
 from drf_extra_fields.fields import Base64ImageField
@@ -122,7 +120,6 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
-        # Создаём профиль сразу
         Profile.objects.get_or_create(user=user)
         return user
 
@@ -241,7 +238,6 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         ingredients_data = validated_data.pop("ingredients", None)
         tags_data = validated_data.pop("tags", None)
 
-        # Используем родительский update для полей модели
         instance = super().update(instance, validated_data)
 
         if tags_data is not None:
