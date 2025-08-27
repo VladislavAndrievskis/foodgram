@@ -154,7 +154,7 @@ class UserRecipeRelation(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="%(class)ss",
+        related_name="%(class)s",
     )
     recipe = models.ForeignKey(
         Recipe,

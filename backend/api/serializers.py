@@ -367,6 +367,10 @@ class SubscribeSerializer(serializers.ModelSerializer):
             )
         return data
 
+    def create(self, validated_data):
+        user = self.context["request"].user
+        return Subscription.objects.create(user=user, **validated_data)
+
     def to_representation(self, instance):
         request = self.context["request"]
         return SubscriptionSerializer(
