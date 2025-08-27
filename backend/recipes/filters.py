@@ -4,12 +4,11 @@ from .models import Recipe, Tag
 
 class RecipeFilter(filters.FilterSet):
     is_favorited = filters.ChoiceFilter(
-        choices=(("0", "False"), ("1", "True")),
-        method="filter_is_favorited"
+        choices=(("0", "False"), ("1", "True")), method="filter_is_favorited"
     )
     is_in_shopping_cart = filters.ChoiceFilter(
         choices=(("0", "False"), ("1", "True")),
-        method="filter_is_in_shopping_cart"
+        method="filter_is_in_shopping_cart",
     )
     author = filters.NumberFilter(field_name="author", lookup_expr="exact")
     tags = filters.ModelMultipleChoiceFilter(

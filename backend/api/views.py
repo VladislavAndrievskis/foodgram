@@ -3,7 +3,6 @@
 from djoser.views import UserViewSet as DjoserUserViewSet
 from django.db.models import Count, F, Sum, Q
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import exceptions, filters, status, viewsets
 from rest_framework.decorators import action
@@ -93,20 +92,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         return queryset
 
-    def _create_relation(self, request, recipe, model, serializer_class):
-        """Создаёт связь (избранное / корзина)."""
-        serializer = serializer_class(
-            data={"user": request.user.id, "recipe": recipe.id},
-            context={"request": request},
-        )
+    def _create_relation(self, request, recipe_id, model, serializer_class):
+        """Создаёт связь (избранное / корзина) по ID рецепта."""
+        data = {"user": request.user.id, "recipe": recipe_id}
+        serializer = serializer_class(data=data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @staticmethod
-    def _delete_relation(user, recipe, model):
-        """Удаляет связь. Возвращает 204 или 400, если связи не было."""
-        deleted, _ = model.objects.filter(user=user, recipe=recipe).delete()
+    def _delete_relation(self, user, model, recipe_id):
+        """Удаляет связь по ID. Возвращает 204 или 400, если связи не было."""
+        deleted, _ = model.objects.filter(
+            user=user, recipe_id=recipe_id
+        ).delete()
         if not deleted:
             raise exceptions.ValidationError("Рецепт не найден в списке.")
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -116,34 +114,26 @@ class RecipeViewSet(viewsets.ModelViewSet):
     )
     def favorite(self, request, pk=None):
         """Добавить рецепт в избранное."""
-        recipe = get_object_or_404(Recipe, pk=pk)
-        return self._create_relation(
-            request, recipe, Favorite, FavoriteSerializer
-        )
+        return self._create_relation(request, pk, Favorite, FavoriteSerializer)
 
     @favorite.mapping.delete
     def delete_favorite(self, request, pk=None):
         """Удалить рецепт из избранного."""
-        user = request.user
-        recipe = get_object_or_404(Recipe, pk=pk)
-        return self._delete_relation(user, recipe, Favorite)
+        return self._delete_relation(request.user, Favorite, pk)
 
     @action(
         detail=True, methods=["post"], permission_classes=(IsAuthenticated,)
     )
     def shopping_cart(self, request, pk=None):
         """Добавить рецепт в список покупок."""
-        recipe = get_object_or_404(Recipe, pk=pk)
         return self._create_relation(
-            request, recipe, ShoppingCart, ShoppingCartSerializer
+            request, pk, ShoppingCart, ShoppingCartSerializer
         )
 
     @shopping_cart.mapping.delete
     def delete_shopping_cart(self, request, pk=None):
         """Удалить рецепт из списка покупок."""
-        user = request.user
-        recipe = get_object_or_404(Recipe, pk=pk)
-        return self._delete_relation(user, recipe, ShoppingCart)
+        return self._delete_relation(request.user, ShoppingCart, pk)
 
     @action(
         detail=False,
@@ -156,7 +146,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe_ids = request.user.shoppingcart.values_list(
             "recipe_id", flat=True
         )
-
         if not recipe_ids:
             return HttpResponse(
                 "Ваш список покупок пуст. Добавьте рецепты.",
@@ -174,7 +163,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             .order_by("name")
         )
 
-        # Генерируем текст
         text = "Список покупок:\n\n"
         text += "\n".join(
             f"{item['name']} — {item['amount']} {item['measurement_unit']}"
@@ -191,9 +179,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
 class UserViewSet(DjoserUserViewSet):
     """
-    Кастомизированный UserViewSet с функционалом подписок.
-    Наследует всё от Djoser: регистрация, /me/, авторизация.
-    Добавлены: /users/subscriptions/, /users/{id}/subscribe/.
+    Кастомный UserViewSet с функционалом подписок и аватара.
+    Наследует регистрацию, /me/, авторизацию от Djoser.
+    Добавлены: /subscriptions/, /subscribe/, /avatar/.
     """
 
     @action(
@@ -203,6 +191,7 @@ class UserViewSet(DjoserUserViewSet):
         permission_classes=(IsAuthenticated,),
     )
     def subscriptions(self, request):
+        """Список авторов, на которых подписан пользователь."""
         user = request.user
         authors_ids = user.subscriptions.values_list("author_id", flat=True)
         queryset = User.objects.filter(id__in=authors_ids).annotate(
@@ -212,7 +201,6 @@ class UserViewSet(DjoserUserViewSet):
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -222,9 +210,9 @@ class UserViewSet(DjoserUserViewSet):
         permission_classes=(IsAuthenticated,),
     )
     def subscribe(self, request, id=None):
-        author = get_object_or_404(User, id=id)
+        """Подписаться на автора."""
         serializer = SubscribeSerializer(
-            data={"author": author.id}, context={"request": request}
+            data={"author": id}, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -233,30 +221,32 @@ class UserViewSet(DjoserUserViewSet):
     @subscribe.mapping.delete
     def unsubscribe(self, request, id=None):
         """Отписаться от автора."""
-        author = get_object_or_404(User, id=id)
-        subscription = get_object_or_404(
-            Subscription, user=request.user, author=author
-        )
-        subscription.delete()
+        deleted, _ = Subscription.objects.filter(
+            user=request.user, author_id=id
+        ).delete()
+        if not deleted:
+            raise exceptions.ValidationError(
+                "Вы не подписаны на этого пользователя."
+            )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=False,
-        methods=["get", "put", "delete"],  # ← добавили "get"
+        methods=["get", "put", "delete"],
         permission_classes=[IsAuthenticated],
         parser_classes=[JSONParser, FormParser],
     )
     def avatar(self, request):
-        user = request.user
-        profile, created = Profile.objects.get_or_create(user=user)
+        """GET — получить, PUT — обновить, DELETE — удалить аватар."""
+        profile, created = Profile.objects.get_or_create(user=request.user)
 
         if request.method == "GET":
-            if profile.avatar:
-                avatar_url = request.build_absolute_uri(profile.avatar.url)
-                return Response(
-                    {"avatar": avatar_url}, status=status.HTTP_200_OK
-                )
-            return Response({"avatar": None}, status=status.HTTP_200_OK)
+            avatar_url = (
+                request.build_absolute_uri(profile.avatar.url)
+                if profile.avatar
+                else None
+            )
+            return Response({"avatar": avatar_url}, status=status.HTTP_200_OK)
 
         elif request.method == "PUT":
             serializer = AvatarSerializer(
@@ -269,7 +259,7 @@ class UserViewSet(DjoserUserViewSet):
 
         elif request.method == "DELETE":
             if profile.avatar:
-                profile.avatar.delete(save=True)
+                profile.avatar.delete(save=False)
                 profile.avatar = None
                 profile.save()
             return Response(status=status.HTTP_204_NO_CONTENT)

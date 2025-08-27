@@ -5,11 +5,12 @@ from django.urls import path, include
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/auth/", include("djoser.urls")),
+    path("api/auth/", include("djoser.urls.authtoken")),
+    # Подключаем API
     path("api/", include("api.urls")),
 ]
 
 if settings.DEBUG:
-    from django.conf import settings
     from django.conf.urls.static import static
 
     urlpatterns += static(

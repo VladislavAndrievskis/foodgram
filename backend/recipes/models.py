@@ -16,6 +16,7 @@ User = get_user_model()
 
 class Tag(models.Model):
     """Тег для рецепта (например, завтрак, веган)."""
+
     name = models.CharField(
         max_length=NAME_MAX_LENGTH,
         verbose_name="Название тега",
@@ -39,6 +40,7 @@ class Tag(models.Model):
 
 class Ingredient(models.Model):
     """Ингредиент с единицей измерения."""
+
     name = models.CharField(
         max_length=NAME_MAX_LENGTH,
         verbose_name="Название ингредиента",
@@ -55,8 +57,7 @@ class Ingredient(models.Model):
         verbose_name_plural = "Ингредиенты"
         constraints = [
             models.UniqueConstraint(
-                fields=("name", "measurement_unit"),
-                name="unique_ingredient"
+                fields=("name", "measurement_unit"), name="unique_ingredient"
             ),
         ]
         ordering = ("name",)
@@ -67,6 +68,7 @@ class Ingredient(models.Model):
 
 class Recipe(models.Model):
     """Основная модель рецепта."""
+
     name = models.CharField(
         max_length=NAME_MAX_LENGTH,
         verbose_name="Название",
@@ -118,6 +120,7 @@ class Recipe(models.Model):
 
 class RecipeIngredients(models.Model):
     """Связь рецепт — ингредиент (с количеством)."""
+
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
@@ -151,6 +154,7 @@ class RecipeIngredients(models.Model):
 
 class UserRecipeRelation(models.Model):
     """Абстрактная модель для связей пользователь-рецепт."""
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -179,6 +183,7 @@ class UserRecipeRelation(models.Model):
 
 class Favorite(UserRecipeRelation):
     """Избранное."""
+
     class Meta(UserRecipeRelation.Meta):
         verbose_name = "избранное"
         verbose_name_plural = "Избранное"
@@ -186,6 +191,7 @@ class Favorite(UserRecipeRelation):
 
 class ShoppingCart(UserRecipeRelation):
     """Список покупок."""
+
     class Meta(UserRecipeRelation.Meta):
         verbose_name = "список покупок"
         verbose_name_plural = "Список покупок"

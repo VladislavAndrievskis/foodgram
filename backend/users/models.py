@@ -9,6 +9,7 @@ User = get_user_model()
 
 class Subscription(models.Model):
     """Подписка пользователя на автора."""
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -50,6 +51,7 @@ class Subscription(models.Model):
 
 class Profile(models.Model):
     """Профиль пользователя с аватаром."""
+
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
