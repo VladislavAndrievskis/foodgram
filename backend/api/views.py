@@ -69,10 +69,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return RecipeSerializer
 
     def get_queryset(self):
-        queryset = Recipe.objects.select_related("author").prefetch_related(
-            "ingredients_in_recipe__ingredient",
-            "tags",
-        ).order_by("-pub_date")
+        queryset = (
+            Recipe.objects.select_related("author")
+            .prefetch_related(
+                "ingredients_in_recipe__ingredient",
+                "tags",
+            )
+            .order_by("-pub_date")
+        )
 
         user = self.request.user
         if user.is_authenticated:
@@ -81,7 +85,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
                     "favorite", filter=Q(favorite__user=user), distinct=True
                 ),
                 is_in_shopping_cart_user=Count(
-                    "shoppingcart", filter=Q(shoppingcart__user=user), distinct=True
+                    "shoppingcart",
+                    filter=Q(shoppingcart__user=user),
+                    distinct=True,
                 ),
             )
 
@@ -236,10 +242,10 @@ class UserViewSet(DjoserUserViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
-    detail=False,
-    methods=["put", "delete"],
-    permission_classes=[IsAuthenticated],
-    parser_classes=[JSONParser, FormParser],
+        detail=False,
+        methods=["put", "delete"],
+        permission_classes=[IsAuthenticated],
+        parser_classes=[JSONParser, FormParser],
     )
     def avatar(self, request):
         """Загрузить или удалить аватар пользователя."""
@@ -247,7 +253,9 @@ class UserViewSet(DjoserUserViewSet):
         profile, created = Profile.objects.get_or_create(user=user)
 
         if request.method == "PUT":
-            serializer = AvatarSerializer(profile, data=request.data, partial=True)
+            serializer = AvatarSerializer(
+                profile, data=request.data, partial=True
+            )
             serializer.is_valid(raise_exception=True)
             serializer.save()
             avatar_url = request.build_absolute_uri(profile.avatar.url)

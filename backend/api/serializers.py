@@ -63,7 +63,8 @@ class CreateUpdateRecipeIngredientsSerializer(serializers.ModelSerializer):
     amount = serializers.IntegerField(
         validators=[
             MinValueValidator(
-                MIN_AMOUNT, f"Количество ингредиента должно быть {MIN_AMOUNT} или более."
+                MIN_AMOUNT,
+                f"Количество ингредиента должно быть {MIN_AMOUNT} или более.",
             )
         ],
         write_only=True,
@@ -177,7 +178,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         validators=[
             MinValueValidator(
                 MIN_COOKING_TIME,
-                f"Время приготовления должно быть не менее {MIN_COOKING_TIME} минуты."
+                f"Время приготовления должно быть не менее {MIN_COOKING_TIME} минуты.",
             )
         ]
     )
@@ -194,13 +195,17 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         if not tags:
             raise ValidationError("Нужно добавить хотя бы один тег.")
         if len(set(tags)) != len(tags):
-            raise ValidationError("У рецепта не может быть два одинаковых тега.")
+            raise ValidationError(
+                "У рецепта не может быть два одинаковых тега."
+            )
 
         if not ingredients:
             raise ValidationError("Нужно добавить хотя бы один ингредиент.")
         ingredient_ids = [item["id"].id for item in ingredients]
         if len(set(ingredient_ids)) != len(ingredient_ids):
-            raise ValidationError("У рецепта не может быть два одинаковых ингредиента.")
+            raise ValidationError(
+                "У рецепта не может быть два одинаковых ингредиента."
+            )
 
         return data
 
@@ -244,7 +249,9 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
 
         if ingredients_data is not None:
             instance.ingredients_in_recipe.all().delete()
-            self._create_ingredients_and_tags(instance, ingredients_data, tags_data)
+            self._create_ingredients_and_tags(
+                instance, ingredients_data, tags_data
+            )
 
         return instance
 
@@ -252,6 +259,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         return RecipeSerializer(
             instance, context={"request": self.context.get("request")}
         ).data
+
 
 class UserRecipeRelationSerializer(serializers.ModelSerializer):
     """Базовый сериализатор для связей пользователь-рецепт."""
@@ -354,7 +362,9 @@ class SubscribeSerializer(serializers.ModelSerializer):
         if user == author:
             raise serializers.ValidationError("Нельзя подписаться на себя.")
         if Subscription.objects.filter(user=user, author=author).exists():
-            raise serializers.ValidationError("Вы уже подписаны на этого пользователя.")
+            raise serializers.ValidationError(
+                "Вы уже подписаны на этого пользователя."
+            )
         return data
 
     def to_representation(self, instance):
