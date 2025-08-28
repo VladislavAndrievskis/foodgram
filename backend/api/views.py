@@ -69,11 +69,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ("retrieve", "list", "download_shopping_cart"):
-            return AllowAny()
+            return (AllowAny(),)
         if self.action in ("create", "favorite", "shopping_cart"):
-            return IsAuthenticated()
-        # Для update, partial_update, destroy — только автор или админ
-        return (IsAuthorOrAdminPermission,)
+            return (IsAuthenticated(),)
+        return (IsAuthorOrAdminPermission(),)
 
     def get_queryset(self):
         queryset = (
