@@ -214,14 +214,17 @@ class UserViewSet(DjoserUserViewSet):
     def subscriptions(self, request):
         user = request.user
         authors_ids = user.subscriptions.values_list("author_id", flat=True)
-        queryset = User.objects.filter(id__in=authors_ids).annotate(
-            recipes_count=Count("recipes")
-        ).prefetch_related(
-            Prefetch(
-                "recipes",
-                queryset=Recipe.objects.only(
-                    "id", "name", "image", "cooking_time"
-                )
+        queryset = (
+            User.objects.filter(id__in=authors_ids)
+            .annotate(recipes_count=Count("recipes"))
+            .prefetch_related(
+                Prefetch(
+                    "recipes",
+                    queryset=Recipe.objects.only(
+                        "id", "name", "image", "cooking_time"
+                    ),
+                ),
+                "profile",
             )
         )
 

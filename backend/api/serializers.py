@@ -299,6 +299,7 @@ class SubscriptionSerializer(UserSerializer):
             "is_subscribed",
             "recipes",
             "recipes_count",
+            "avatar",
         )
 
     def get_recipes(self, obj):
