@@ -1,5 +1,6 @@
 """Вьюсеты API: рецепты, теги, ингредиенты, пользователи."""
 
+from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet as DjoserUserViewSet
 from django.db.models import Count, F, Sum, Q
 from django.http import HttpResponse
@@ -57,15 +58,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
     """Вьюсет для управления рецептами: создание, редактирование, фильтр."""
 
     queryset = Recipe.objects.all()
-    permission_classes = (IsAuthorOrAdminPermission,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
     pagination_class = PageNumberPagination
 
     def get_serializer_class(self):
-        if self.action in ("create", "partial_update"):
+        if self.action in ("create", "partial_update", "update"):
             return RecipeCreateUpdateSerializer
         return RecipeSerializer
+
+    def get_permissions(self):
+        if self.action in ("retrieve", "list", "download_shopping_cart"):
+            return AllowAny()
+        if self.action in ("create", "favorite", "shopping_cart"):
+            return IsAuthenticated()
+        # Для update, partial_update, destroy — только автор или админ
+        return (IsAuthorOrAdminPermission,)
 
     def get_queryset(self):
         queryset = (
@@ -80,10 +88,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_authenticated:
             queryset = queryset.annotate(
-                is_favorited_user=Count(
+                is_favorited=Count(
                     "favorite", filter=Q(favorite__user=user), distinct=True
                 ),
-                is_in_shopping_cart_user=Count(
+                is_in_shopping_cart=Count(
                     "shoppingcart",
                     filter=Q(shoppingcart__user=user),
                     distinct=True,
@@ -241,7 +249,7 @@ class UserViewSet(DjoserUserViewSet):
     @action(
         detail=False,
         methods=["get", "put", "delete"],
-        permission_classes=[IsAuthenticated],
+        permission_classes=(IsAuthenticated,),
         parser_classes=[JSONParser, FormParser],
         url_path="me/avatar",
     )
@@ -274,3 +282,24 @@ class UserViewSet(DjoserUserViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        permission_classes=(AllowAny,),
+        url_path="avatar",
+        url_name="get_user_avatar",
+    )
+    def get_user_avatar(self, request, id=None):
+        """
+        Получить аватар пользователя по ID.
+        Доступно всем: авторизованным и анонимным.
+        """
+        user = get_object_or_404(User, id=id)
+        profile = getattr(user, "profile", None)
+
+        if profile and profile.avatar:
+            avatar_url = request.build_absolute_uri(profile.avatar.url)
+            return Response({"avatar": avatar_url}, status=status.HTTP_200_OK)
+        else:
+            return Response({"avatar": None}, status=status.HTTP_200_OK)
