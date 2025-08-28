@@ -193,6 +193,11 @@ class UserViewSet(DjoserUserViewSet):
 
     lookup_field = "id"
 
+    def get_permissions(self):
+        if self.action == "retrieve":
+            return (IsAuthenticated(),)
+        return super().get_permissions()
+
     def retrieve(self, request, *args, **kwargs):
         """Получение пользователя по ID."""
         instance = self.get_object()
