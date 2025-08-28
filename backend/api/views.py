@@ -211,18 +211,14 @@ class UserViewSet(DjoserUserViewSet):
         permission_classes=(IsAuthenticated,),
     )
     def subscriptions(self, request):
-        """Список авторов, на которых подписан пользователь."""
         user = request.user
         authors_ids = user.subscriptions.values_list("author_id", flat=True)
         queryset = User.objects.filter(id__in=authors_ids).annotate(
             recipes_count=Count("recipes")
         )
         page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        serializer = self.get_serializer(page, many=True)
+        return self.get_paginated_response(serializer.data)
 
     @action(
         detail=True,
