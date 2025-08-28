@@ -2,7 +2,7 @@
 
 from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet as DjoserUserViewSet
-from django.db.models import Count, F, Sum, Q
+from django.db.models import Count, F, Prefetch, Sum, Q
 from django.http import HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import exceptions, filters, status, viewsets
@@ -191,6 +191,7 @@ class UserViewSet(DjoserUserViewSet):
     Добавлены: /subscriptions/, /subscribe/, /avatar/.
     """
 
+    pagination_class = PageNumberPagination
     lookup_field = "id"
 
     def get_permissions(self):
@@ -215,10 +216,22 @@ class UserViewSet(DjoserUserViewSet):
         authors_ids = user.subscriptions.values_list("author_id", flat=True)
         queryset = User.objects.filter(id__in=authors_ids).annotate(
             recipes_count=Count("recipes")
+        ).prefetch_related(
+            Prefetch(
+                "recipes",
+                queryset=Recipe.objects.only(
+                    "id", "name", "image", "cooking_time"
+                )
+            )
         )
+
         page = self.paginate_queryset(queryset)
-        serializer = self.get_serializer(page, many=True)
-        return self.get_paginated_response(serializer.data)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     @action(
         detail=True,
